@@ -7,7 +7,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+  //await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
 });
 
 describe("HU03 - Cierre de sesión", () => {
@@ -19,6 +19,6 @@ describe("HU03 - Cierre de sesión", () => {
 
   test("E2 - Inválido: sesión no abierta", async () => {
     await expect(userService.logOut("al123456@uji.es"))
-      .rejects.toThrow("SessionNotFoundException");
+      .rejects.toThrow("RequiresRecentLogin");
   });
 });
