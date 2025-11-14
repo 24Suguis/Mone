@@ -17,7 +17,7 @@ describe("HU02 - Inicio de sesión", () => {
     userService.logOut();
   });
 
-  test("E2 - Inválido: contraseña incorrecta", async () => {
+  test("E2 - Inválido: contraseña incorrecta, no inicia sesión", async () => {
     await expect(userService.logIn("al123456@uji.es", "micontraseña"))
       .rejects.toThrow("InvalidCredentials");
   });
