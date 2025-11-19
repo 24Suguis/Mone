@@ -13,12 +13,18 @@ export class UserSession {
     }
 
     // Crea instancia desde objeto plano
-    static fromPlain(o: any): UserSession {
-        return new UserSession(o?.userId ?? "", o?.tokenFirebase ?? "");
+    static fromPlain(o: unknown): UserSession {
+        if (o && typeof o === "object") {
+            const obj = o as Record<string, unknown>;
+            const userId = typeof obj.userId === "string" ? obj.userId : "";
+            const tokenFirebase = typeof obj.tokenFirebase === "string" ? obj.tokenFirebase : "";
+            return new UserSession(userId, tokenFirebase);
+        }
+        return new UserSession();
     }
 
     // Serialización/Deserialización en localStorage
-    saveToCache(key = "userSession") {
+    saveToCache(key = "userSession") {// asociar el contenido de dentro del metodo a la key "userSession"
         try {
             localStorage.setItem(key, JSON.stringify(this.toPlain()));
         } catch {
@@ -38,10 +44,13 @@ export class UserSession {
     }
 
     static clearCache(key = "userSession") {
-        try { localStorage.removeItem(key); } catch {}
+        try { localStorage.removeItem(key); } 
+        catch {
+            // manejar storage no disponible
+        }
     }
 
-    isActive(): boolean {
+    isSessionActive(): boolean {
         return typeof this.userId === "string" && this.userId.length > 0 &&
                typeof this.tokenFirebase === "string" && this.tokenFirebase.length > 0;
     }

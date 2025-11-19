@@ -2,8 +2,8 @@ import React from "react";
 import { UserViewModel } from "../viewModel/UserViewModel";
 import { useNavigate } from "react-router-dom";
 export const SignUp = () => {
-    const navigate = useNavigate();
-  const  {
+  const navigate = useNavigate();
+  const {
     email,
     nickname,
     password,
@@ -19,7 +19,7 @@ export const SignUp = () => {
   } = UserViewModel(navigate); //pasamos el navigate al viewmodel
 
   return (
-    <div>
+    <div className="containercentrado h-screen w-1/2">
       <h2>Sign Up</h2>
 
       <input
@@ -29,7 +29,7 @@ export const SignUp = () => {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-       {errors.email && (
+      {errors.email && (
         <p className="text-red-500 text-sm mb-2">{errors.email}</p>
       )}
 
@@ -40,7 +40,7 @@ export const SignUp = () => {
         value={nickname}
         onChange={(e) => setNickname(e.target.value)}
       />
-       {errors.nickname && (
+      {errors.nickname && (
         <p className="text-red-500 text-sm mb-2">{errors.nickname}</p>
       )}
 
@@ -51,10 +51,9 @@ export const SignUp = () => {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-         {errors.password && (
+      {errors.password && (
         <p className="text-red-500 text-sm mb-2">{errors.password}</p>
       )}
-
 
       <button
         onClick={handleSignUp}
@@ -63,9 +62,7 @@ export const SignUp = () => {
       >
         {loading ? "Creando cuenta..." : "Registrarse"}
       </button>
-
-      {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}    
-
+      {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}
     </div>
   );
 };
