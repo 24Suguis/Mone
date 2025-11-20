@@ -1,24 +1,31 @@
 import { useState } from "react";
 import { UserService } from "../domain/service/UserService";
 
-export const UserViewModel = (onNavigate: (path: string) => void) => {//pasamos el navigate como parametro para no acoplar el viewmodel a react-router
+export const useUserViewModel = (onNavigate: (path: string) => void) => {
   const [email, setEmail] = useState<string>("");
   const [nickname, setNickname] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [loading, setLoading] = useState(false); //para desactivar el boton mientras procesamos el registro y que no pueda hacer varios clicks
-  const [errors, setErrors] = useState({}); //Errores de validacion
-  const userService = UserService.getInstance();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [errors, setErrors] = useState<Record<string, string>>({}); // Errores de validacion
 
+  // intentar obtener UserService de forma segura
+  let userService: any = null;
+  try {
+    userService = UserService.getInstance();
+  } catch (err) {
+    // Si falla la inicialización, no romperá el hook; se informará al intentar usarlo.
+    // Mantener console.warn para facilitar depuración en desarrollo.
+    // eslint-disable-next-line no-console
+    console.warn("UserService no disponible:", err);
+    userService = null;
+  }
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    //email
     if (!email) newErrors.email = "El email es obligatorio";
     else if (!email.includes("@")) newErrors.email = "Email no válido";
-    //nickname
     if (!nickname) newErrors.nickname = "El nickname es obligatorio";
-    //password
     if (password.length < 6) newErrors.password = "Mínimo 6 caracteres";
     else {
       const passwordRegex =
@@ -29,32 +36,26 @@ export const UserViewModel = (onNavigate: (path: string) => void) => {//pasamos 
       }
     }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; //si no hay errores, es valido, contamos las llaves
+    return Object.keys(newErrors).length === 0;
   };
 
-  /*
-  mínimo dos mayúsculas, dos minúsculas, dos números y longitud de 6 caracteres.
-letras del alfabeto inglés mayúsculas y minúsculas: A-Z, a-z
-números 0 al 9
-símbolos !, @, #, $, %, ^, &, *, (, ), -, _, =, +, [, ], {, }, :, ., ?
-NO se permiten comas ni espacios.
-  */
   const handleSignUp = async () => {
     if (!email || !nickname || !password || !validate()) {
       setMessage("Por favor, completa todos los campos correctamente.");
       return;
     }
-    setLoading(true); //nada mas se llame a la funcion, loading true y por ende boton desactivado
+    setLoading(true);
 
     try {
-      userService.signUp(email, nickname, password);
+      if (!userService || typeof userService.signUp !== "function") {
+        throw new Error("Servicio de usuario no disponible");
+      }
+      await userService.signUp(email, nickname, password);
       setMessage("Registro completado con éxito.");
-      onNavigate("/login"); //redirigimos al login, usando la funcion pasada como parametro del view jsx
+      onNavigate("/login");
     } catch (error) {
-      // console.error("Cagaste xd:", error);
       setMessage("Error al registrar el usuario: " + (error as Error).message);
-    }
-    finally {
+    } finally {
       setLoading(false);
     }
   };

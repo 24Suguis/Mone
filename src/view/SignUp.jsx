@@ -1,6 +1,7 @@
-import React from "react";
-import { UserViewModel } from "../viewModel/UserViewModel";
+import React, { useState, useEffect } from "react";
+import { useUserViewModel } from "../viewmodel/UserViewModel";
 import { useNavigate } from "react-router-dom";
+
 export const SignUp = () => {
   const navigate = useNavigate();
   const {
@@ -16,53 +17,106 @@ export const SignUp = () => {
     setMessage,
     handleSignUp,
     setLoading,
-  } = UserViewModel(navigate); //pasamos el navigate al viewmodel
+  } = useUserViewModel(navigate);
+
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmError, setConfirmError] = useState("");
+
+  useEffect(() => {
+    if (confirmError && password === confirmPassword) setConfirmError("");
+  }, [password, confirmPassword, confirmError]);
+
+  const onSignUp = async () => {
+    setConfirmError("");
+    setMessage && setMessage("");
+    if (password !== confirmPassword) {
+      setConfirmError("Las contraseñas no coinciden");
+      return;
+    }
+    try {
+      await handleSignUp();
+    } catch (err) {
+      setConfirmError((err && err.message) || "Error al registrar");
+    }
+  };
 
   return (
-    <div className="containercentrado h-screen w-1/2">
-      <h2>Sign Up</h2>
+    <div className="center" role="main" style={{height: "100%", width: "100%"}}>
+      <div className="default-container with-border login-card" aria-live="polite">
+        <h2 style={{ textAlign: "center", margin: "0 0 1rem" }}>Sign Up</h2>
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={!!errors.email}
+        />
+        {errors.email && <p className="error-text">{errors.email}</p>}
 
-      <input
-        type="email"
-        placeholder="Email"
-        //className="border p-2 rounded w-full mb-3"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      {errors.email && (
-        <p className="text-red-500 text-sm mb-2">{errors.email}</p>
-      )}
+        <label htmlFor="nickname">Nickname</label>
+        <input
+          id="nickname"
+          type="text"
+          placeholder="Nickname"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+          aria-invalid={!!errors.nickname}
+        />
+        {errors.nickname && <p className="error-text">{errors.nickname}</p>}
 
-      <input
-        type="text"
-        placeholder="Nickname"
-        // className="border p-2 rounded w-full mb-3"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-      />
-      {errors.nickname && (
-        <p className="text-red-500 text-sm mb-2">{errors.nickname}</p>
-      )}
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          aria-invalid={!!errors.password}
+        />
+        {errors.password && <p className="error-text">{errors.password}</p>}
 
-      <input
-        type="password"
-        placeholder="Password"
-        //className="border p-2 rounded w-full mb-4"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      {errors.password && (
-        <p className="text-red-500 text-sm mb-2">{errors.password}</p>
-      )}
+        <label htmlFor="confirmPassword">Confirmar password</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          placeholder="Confirmar password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        {confirmError && <p className="error-text">{confirmError}</p>}
 
-      <button
-        onClick={handleSignUp}
-        disabled={loading}
-        className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600"
-      >
-        {loading ? "Creando cuenta..." : "Registrarse"}
-      </button>
-      {message && <p className="mt-4 text-sm text-gray-700">{message}</p>}
+        <button
+          onClick={onSignUp}
+          disabled={loading}
+          className="btn btn-primary"
+          style={{ marginTop: 12, width: "100%", boxSizing: "border-box", display: "block" }}
+        >
+          {loading ? "Creando cuenta..." : "Sign Up"}
+        </button>
+
+        {message && <p className="success-text" style={{ marginTop: 12 }}>{message}</p>}
+
+        <p style={{ marginTop: 12, textAlign: "center", fontSize: "0.8rem" }}>
+          Already have an account?{" "}
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              textDecoration: "underline",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            Log in
+          </button>
+        </p>
+
+      </div>
     </div>
   );
 };
