@@ -44,21 +44,47 @@ export class UserService {
     nickname: string,
     password: string
   ): Promise<string> {
-    if (
-      !validatePassword(password) ||
-      !isValidEmail(email) ||
-      !isValidNickname(nickname)
-    ) {
-      throw new Error("InvalidDataException");
+    // Delegar validación aquí y lanzar errores detallados
+    if (!isValidEmail(email)) {
+      throw new Error("InvalidEmailException");
     }
+    if (!isValidNickname(nickname)) {
+      throw new Error("InvalidNicknameException");
+    }
+    if (!validatePassword(password)) {
+      throw new Error("InvalidPasswordException");
+    }
+
     try {
       const user = new User(email, nickname);
-      const userId = await this.authProvider.signUp(user, password); //email + password
-      await this.userRepository.saveUser(userId, user); //email + nickname
+      const userId = await this.authProvider.signUp(user, password); // email + password
+      await this.userRepository.saveUser(userId, user); // email + nickname
       return userId;
-    } catch (error) {
-      handleAuthError(error as FirebaseError);
-      return ""; // Esto es solo para satisfacer el compilador; el flujo no debería llegar aquí
+    } catch (error: any) {
+      // Mapear errores de Firebase a mensajes significativos para los tests / UI
+      // Algunos adapters devuelven .code con 'auth/email-already-in-use' etc.
+      const code = (error && (error.code || error?.message)) || "";
+      if (typeof code === "string" && code.includes("email")) {
+        // intentar detectar caso de correo ya usado
+        if (
+          code.includes("already") ||
+          code.includes("in-use") ||
+          code.includes("exist")
+        ) {
+          throw new Error("EmailAlreadyInUse");
+        }
+      }
+
+      // Si existe helper que lanza excepciones específicas, lo delegamos
+      try {
+        handleAuthError(error as any);
+      } catch (e: any) {
+        // si handleAuthError lanza algo con mensaje útil, re-lanzarlo
+        throw e;
+      }
+
+      // fallback: lanzar error genérico con el mensaje original
+      throw new Error((error && error.message) || "SignUpFailed");
     }
   }
 }

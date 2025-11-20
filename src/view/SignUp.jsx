@@ -11,6 +11,7 @@ export const SignUp = () => {
     message,
     loading,
     errors,
+    passwordRequirements,
     setEmail,
     setNickname,
     setPassword,
@@ -76,6 +77,17 @@ export const SignUp = () => {
           aria-invalid={!!errors.password}
         />
         {errors.password && <p className="error-text">{errors.password}</p>}
+        <p
+          className="hint-text"
+          style={{
+            fontSize: "0.8rem",
+            color: "rgba(0,0,0,0.6)",
+            marginTop: 6,
+            lineHeight: 1.3,
+          }}
+        >
+          {passwordRequirements}
+        </p>
 
         <label htmlFor="confirmPassword">Confirmar password</label>
         <input
@@ -95,8 +107,6 @@ export const SignUp = () => {
         >
           {loading ? "Creando cuenta..." : "Sign Up"}
         </button>
-
-        {message && <p className="success-text" style={{ marginTop: 12 }}>{message}</p>}
 
         <p style={{ marginTop: 12, textAlign: "center", fontSize: "0.8rem" }}>
           Already have an account?{" "}

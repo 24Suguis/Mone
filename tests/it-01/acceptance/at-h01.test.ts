@@ -35,32 +35,27 @@ afterAll(async () => {
 
 describe("HU-01. Pruebas de aceptación del registro de usuario", () => {
   test("E1- Válido; Debe registrar un nuevo usuario en Firebase", async () => {
-    const result = await userService.signUp(email, nickname, password); //devuelve userID
+    const result = await userService.signUp(email, nickname, password)
     expect(typeof result).toBe("string");
     expect((result as string).length).toBeGreaterThan(0);
-    // expect(result).not.toBe(""); 
-    //comparar con contenido del ususario en firebase
-
   });
 
   test("E2- Inválido; Debe lanzar error, usuario ya existente --> EmailAlreadyInUse", async () => {
-    //const result = await signUp(email, password);
-    //expect(result.user).toThrow("InvalidUserException");
     await expect(
       userService.signUp(email, "Juan", "juanElMasGuapo72")
     ).rejects.toThrow("EmailAlreadyInUse");
   });
 
-  test("E3- Inválido(nickname inválido, la ñ);  --> InvalidDataException", async () => {
+  test("E3- Inválido(nickname inválido, la ñ);  --> InvalidNicknameException", async () => {
     await expect(
       userService.signUp("al789456@uji.es", "Begoña", "juanElMasGuapo72")
-    ).rejects.toThrow("InvalidDataException");
+    ).rejects.toThrow("InvalidNicknameException");
   });
 
-  test("E4- Inválido(Correo electrónico inválido) --> InvalidDataException", async () => {
+  test("E4- Inválido(Correo electrónico inválido) --> InvalidEmailException", async () => {
     await expect(
       userService.signUp("al789456atujidotes", "Marco", "juanElMasGuapo72")
-    ).rejects.toThrow("InvalidDataException");
+    ).rejects.toThrow("InvalidEmailException");
   });
 })
 ;
