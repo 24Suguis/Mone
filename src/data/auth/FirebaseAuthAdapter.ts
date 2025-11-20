@@ -53,4 +53,17 @@ export class FirebaseAuthAdapter implements AuthProvider {
     }
   }
 
+  async signUp(user: User, password: string): Promise<string> {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        this.auth,
+        user.getEmail(),
+        password
+      );
+      const fbUserId = userCredential.user.uid;
+      return fbUserId;
+    } catch (Error) {
+        throw handleAuthError(Error as FirebaseError);
+    }
+  }
 }
