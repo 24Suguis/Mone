@@ -27,7 +27,33 @@ export const handleAuthError = (error: unknown): never => {
   const message = (error && (error as any).message) ?? String(error ?? "");
   const normalized = (String(code) + " " + String(message)).toLowerCase();
 
-  // Mapeos específicos por texto libre
+  if (typeof code === "string" && code.startsWith("auth/")) {
+    const mapping: Record<string, string> = {
+      "auth/wrong-password": "InvalidCredentials",
+      "auth/invalid-credential": "InvalidCredentials",
+      "auth/invalid-credentials": "InvalidCredentials",
+      "auth/invalid-email": "InvalidEmail",
+      "auth/user-not-found": "UserNotFound",
+      "auth/email-already-in-use": "EmailAlreadyInUse",
+      "auth/weak-password": "InvalidPasswordException",
+      "auth/too-many-requests": "TooManyRequests",
+      "auth/user-disabled": "UserDisabled",
+    };
+    const mapped = mapping[code];
+    if (mapped) throw new Error(mapped);
+    // fallback: devolver el código sin prefijo
+    throw new Error(String(code).replace(/^auth\//, ""));
+  }
+
+  if (
+    normalized.includes("user-not-found") ||
+    normalized.includes("auth/user-not-found") ||
+    normalized.includes("no user") ||
+    normalized.includes("not found")
+  ) {
+    throw new Error("UserNotFound");
+  }
+
   if (
     normalized.includes("auth/email-already-in-use") ||
     normalized.includes("already-in-use") ||
@@ -36,7 +62,6 @@ export const handleAuthError = (error: unknown): never => {
     throw new Error("EmailAlreadyInUse");
   }
 
-  // Mapear variantes que Firebase puede devolver (singular/plural, guiones, espacios...)
   if (
     normalized.includes("auth/wrong-password") ||
     normalized.includes("wrong-password") ||
@@ -44,7 +69,7 @@ export const handleAuthError = (error: unknown): never => {
     normalized.includes("invalid credential") ||
     normalized.includes("invalid password") ||
     normalized.includes("invalid-password") ||
-    normalized.includes("invalid-credential") // firebase puede devolver this
+    normalized.includes("invalid-credential")
   ) {
     throw new Error("InvalidCredentials");
   }
@@ -63,15 +88,6 @@ export const handleAuthError = (error: unknown): never => {
     normalized.includes("weak password")
   ) {
     throw new Error("InvalidPasswordException");
-  }
-
-  if (
-    normalized.includes("auth/user-not-found") ||
-    normalized.includes("user-not-found") ||
-    normalized.includes("no user") ||
-    normalized.includes("not found")
-  ) {
-    throw new Error("UserNotFound");
   }
 
   if (
@@ -110,26 +126,6 @@ export const handleAuthError = (error: unknown): never => {
   }
   if (normalized.includes("auth/credential-already-in-use") || normalized.includes("credential-already-in-use")) {
     throw new Error("CredentialAlreadyInUse");
-  }
-
-  // Diccionario para mapear códigos auth/* concretos a identificadores de tests/UI
-  if (typeof code === "string" && code.startsWith("auth/")) {
-    const mapping: Record<string, string> = {
-      "auth/wrong-password": "InvalidCredentials",
-      "auth/invalid-credential": "InvalidCredentials",
-      "auth/invalid-credentials": "InvalidCredentials",
-      "auth/invalid-email": "InvalidEmail",
-      "auth/user-not-found": "UserNotFound",
-      "auth/email-already-in-use": "EmailAlreadyInUse",
-      "auth/weak-password": "InvalidPasswordException",
-      "auth/too-many-requests": "TooManyRequests",
-      "auth/user-disabled": "UserDisabled",
-    };
-    const mapped = mapping[code];
-    if (mapped) throw new Error(mapped);
-    // si no está mapeado, devolver el código sin prefijo pero normalizado a PascalCase-ish
-    const fallbackId = String(code).replace(/^auth\//, "");
-    throw new Error(fallbackId);
   }
 
   // Último recurso: lanzar el mensaje original o un identificador genérico

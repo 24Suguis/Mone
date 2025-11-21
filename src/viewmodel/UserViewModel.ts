@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { UserService } from "../domain/service/UserService";
+import { UserSession } from "../domain/session/UserSession";
+
+// helper para obtener la instancia cuando la necesitamos (no cacheada a nivel módulo)
+const getSvc = () => UserService.getInstance();
 
 export const useUserViewModel = (onNavigate: (path: string) => void) => {
   const [email, setEmail] = useState<string>("");
@@ -9,11 +13,13 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({}); // Errores de campo
 
-  // Texto reutilizable con los requisitos de contraseña (mostrado en la UI)
+  // Obtener la instancia una sola vez por hook (segura si se inyectó antes de montar)
+  const svc = getSvc();
+
   const passwordRequirements =
     "Password requirements: minimum 6 characters; at least 2 uppercase letters, 2 lowercase letters and 2 digits; no spaces or commas.";
 
-  // --- Sign up (ya existente) ---
+  // --- Sign up ---
   const handleSignUp = async () => {
     if (!email || !nickname || !password) {
       setMessage("Por favor, completa todos los campos.");
@@ -25,8 +31,7 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     setErrors({});
 
     try {
-      const userService = UserService.getInstance();
-      const userId = await userService.signUp(email.trim(), nickname.trim(), password);
+      const userId = await svc.signUp(email.trim(), nickname.trim(), password);
       setMessage("Registro completado con éxito.");
       setEmail("");
       setNickname("");
@@ -75,9 +80,7 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     setErrors({});
 
     try {
-      const userService = UserService.getInstance();
-      const session = await userService.logIn(e.trim(), p);
-      // éxito: limpiar campos y navegar si se quiere
+      const session = await svc.logIn(e.trim(), p);
       setEmail("");
       setPassword("");
       setMessage("");
@@ -92,6 +95,8 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
         setMessage("Email or password incorrect.");
       } else if (msg === "UserDisabled") {
         setMessage("User disabled.");
+      }else if (msg === "TooManyRequests") {
+        setMessage("Too many login attempts. Please try again later.");
       } else {
         setMessage(msg);
       }
@@ -106,8 +111,7 @@ export const useUserViewModel = (onNavigate: (path: string) => void) => {
     setMessage("");
     setErrors({});
     try {
-      const userService = UserService.getInstance();
-      const session = await userService.googleSignIn();
+      const session = await svc.googleSignIn();
       setMessage("");
       return session;
     } catch (error) {
@@ -164,3 +168,124 @@ const handleDeleteAccount = async () => {
 };
 
 };
+
+const normalizeProfile = (
+  profile: any,
+  fallback: { email?: string; nickname?: string } = {}
+): { email: string; nickname: string } => {
+  if (!profile) {
+    return {
+      email: fallback.email ?? "",
+      nickname: fallback.nickname ?? "",
+    };
+  }
+
+  const emailValue = typeof profile.getEmail === "function"
+    ? profile.getEmail()
+    : profile.email ?? profile.emailAddress ?? fallback.email ?? "";
+
+  const nicknameValue = typeof profile.getNickname === "function"
+    ? profile.getNickname()
+    : profile.nickname ?? profile.displayName ?? fallback.nickname ?? "";
+
+  return { email: emailValue, nickname: nicknameValue };
+};
+
+export const getCurrentUid = (): string | null => {
+  try {
+    const session = (UserSession as any).loadFromCache ? UserSession.loadFromCache() : null;
+    return session?.userId ?? null;
+  } catch {
+    return null;
+  }
+};
+
+export const getUser = async (uid: string) => {
+  const svc = getSvc();
+  if (!uid) {
+    return { ...normalizeProfile(null), emailReadOnly: false };
+  }
+
+  try {
+    const info = await svc.getAccountInfo(uid);
+    return {
+      ...normalizeProfile(info?.user),
+      emailReadOnly: Boolean(info?.emailReadOnly),
+    };
+  } catch {
+    const fallback = await svc.getUserById(uid);
+    return { ...normalizeProfile(fallback), emailReadOnly: false };
+  }
+};
+
+export const updateAccountInfo = async (opts: { email?: string; nickname?: string; currentPassword?: string }) => {
+  const { email, nickname, currentPassword } = opts;
+  const svc = getSvc();
+  try {
+    const result = await svc.updateCurrentUserProfile(email, currentPassword, nickname);
+    const emailVerificationRequired = result?.emailVerificationRequired ?? false;
+
+    // devolver el usuario actualizado (si hay sesión y servicio lo permite)
+    const uid = getCurrentUid();
+    if (uid) {
+      try {
+        const info = await svc.getAccountInfo(uid);
+        return {
+          profile: {
+            ...normalizeProfile(info?.user, { email: email ?? "", nickname: nickname ?? "" }),
+            emailReadOnly: Boolean(info?.emailReadOnly),
+          },
+          emailVerificationRequired,
+        };
+      } catch {
+        /* ignore metadata errors and fall back */
+      }
+    }
+
+    const normalizedProfile = normalizeProfile(null, { email: email ?? "", nickname: nickname ?? "" });
+    return {
+      profile: { ...normalizedProfile, emailReadOnly: false },
+      emailVerificationRequired,
+    };
+  } catch (error) {
+    // Normalizar errores de campo para que la vista pueda mostrarlos debajo de cada input
+    const msg =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error
+          ? String((error as { message?: string }).message)
+          : String(error ?? "");
+
+    // lanzar objeto estructurado con fieldErrors para que la vista lo capture fácilmente
+    if (msg === "InvalidEmailException") {
+      throw { fieldErrors: { email: "Invalid email" }, original: error };
+    }
+    if (msg === "InvalidNicknameException") {
+      throw { fieldErrors: { nickname: "Invalid nickname" }, original: error };
+    }
+    if (msg === "EmailAlreadyInUse") {
+      throw { fieldErrors: { email: "This email is already in use" }, original: error };
+    }
+    if (msg === "RequiresRecentLogin" || msg === "MissingPassword" || msg === "Auth/missing-password") {
+      throw { fieldErrors: { currentPassword: "Enter your current password to change your email address." }, original: error };
+    }
+    if (msg === "EmailUpdateNotAllowed") {
+      throw {
+        fieldErrors: {
+          email: "This email is linked to your Google account and cannot be changed here.",
+        },
+        original: error,
+      };
+    }
+
+    // fallback: re-lanzar error sin modificar
+    throw error;
+  }
+};
+
+const userViewmodel = {
+  getUser,
+  updateAccountInfo,
+};
+
+export default userViewmodel;

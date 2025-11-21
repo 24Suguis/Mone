@@ -23,7 +23,7 @@ const firebaseApp  = initializeApp(firebaseConfig);
 //const analytics = getAnalytics(app);
 
 // Autenticación
-const auth = getAuth(firebaseApp );
+const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 
 // Exportamos para usar en otros archivos

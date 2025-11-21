@@ -13,6 +13,9 @@ import {
 } from "firebase/firestore";
 import { firebaseApp } from "../../core/config/firebaseConfig";
 import { User } from "../../domain/model/User";
+import {
+ 
+} from "firebase/auth";
 
 const db = getFirestore(firebaseApp);
 
@@ -29,14 +32,16 @@ export class FirebaseDataSource {
     return user;
   }
 
-  async getUserByEmail(email: string): Promise<User | null> {
-    const q = query(this.userCollection, where("email", "==", email));
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-    const docSnap = snapshot.docs[0];
-    const data = docSnap.data() as any;
-    const user = new User(data.email ?? "", data.nickname ?? "");
-    return user;
+  async getUserByEmail(email: string): Promise<any | null> {
+    try {
+      const q = query(this.userCollection, where("email", "==", email));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch {
+      return null;
+    }
   }
 
   // rename parameter to avoid shadowing the imported class
@@ -53,4 +58,14 @@ export class FirebaseDataSource {
     );
     return userId;
   }
+
+  async updateUserProfile(userId: string, tempUser: User): Promise<void> {
+    const ref = doc(db, "users", userId.trim());
+    const payload = {
+      email: tempUser.getEmail(),
+      nickname: tempUser.getNickname(),
+    };
+    await updateDoc(ref, payload);
+  }
+
 }
