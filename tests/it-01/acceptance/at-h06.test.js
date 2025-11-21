@@ -4,6 +4,12 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach,test }
 let userService;
 beforeAll(async () => {
     userService = UserService.getInstance();
+    try {
+      await userService.logIn("al123456@uji.es", "MiContrasena64");
+    } catch (err) {
+      await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+      await userService.logIn("al123456@uji.es", "MiContrasena64");
+    }
 });
 describe("HU06 - Actualización de datos personales", () => {
   beforeEach(async () => {
@@ -13,13 +19,13 @@ describe("HU06 - Actualización de datos personales", () => {
   });
 
   test("E1 - Válido: el usuario cambia su alias correctamente", async () => {
-    const result = await userService.updateUserProfile("al123456@uji.es", { nickname: "Mario" });
+    const result = await userService.updateCurrentUserProfile("al123456@uji.es", "Mario");
     expect(result).toBe(true);
 
   });
 
   test("E2 - Inválido: el usuario introduce un correo inválido", async () => {
-    await expect(userService.updateUserProfile("al123456@uji.es", { email: "yo" }))
-      .rejects.toThrow("InvalidDataException");
+    await expect(userService.updateCurrentUserProfile("yo"))
+      .rejects.toThrow("InvalidEmailException");
   });
 });

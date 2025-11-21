@@ -7,51 +7,81 @@ export class UserSession {
         this.tokenFirebase = tokenFirebase;
     }
 
-    // Convierte a objeto plano (útil para JSON)
+    /** Sesión válida */
+    isLoggedIn(): boolean {
+        return Boolean(this.userId && this.tokenFirebase);
+    }
+
     toPlain() {
         return { userId: this.userId, tokenFirebase: this.tokenFirebase };
     }
 
-    // Crea instancia desde objeto plano
-    static fromPlain(o: unknown): UserSession {
-        if (o && typeof o === "object") {
-            const obj = o as Record<string, unknown>;
-            const userId = typeof obj.userId === "string" ? obj.userId : "";
-            const tokenFirebase = typeof obj.tokenFirebase === "string" ? obj.tokenFirebase : "";
-            return new UserSession(userId, tokenFirebase);
-        }
-        return new UserSession();
+    static fromPlain(o: any): UserSession {
+        if (!o || typeof o !== "object") return new UserSession();
+        return new UserSession(
+            typeof o.userId === "string" ? o.userId : "",
+            typeof o.tokenFirebase === "string" ? o.tokenFirebase : ""
+        );
     }
 
-    // Serialización/Deserialización en localStorage
-    saveToCache(key = "userSession") {// asociar el contenido de dentro del metodo a la key "userSession"
+    saveToCache() {
         try {
-            localStorage.setItem(key, JSON.stringify(this.toPlain()));
-        } catch {
-            // manejar storage no disponible
-        }
+            localStorage.setItem("user_session", JSON.stringify(this.toPlain()));
+        } catch { /* ignore */ }
     }
 
-    static loadFromCache(key = "userSession"): UserSession | null {
+    static saveProfileToCache(profile: { userId: string; email?: string; nickname?: string; cachedAt?: number }) {
         try {
-            const raw = localStorage.getItem(key);
+            const clean = {
+                userId: profile.userId ?? "",
+                email: profile.email ?? "",
+                nickname: profile.nickname ?? "",
+                cachedAt: profile.cachedAt ?? Date.now(),
+            };
+            localStorage.setItem("user_profile", JSON.stringify(clean));
+        } catch { /* ignore */ }
+    }
+
+    static loadProfileFromCache(): { userId: string; email: string; nickname: string; cachedAt: number } | null {
+        try {
+            const raw = localStorage.getItem("user_profile");
             if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return UserSession.fromPlain(parsed);
+            const data = JSON.parse(raw);
+
+            if (!data || typeof data !== "object") return null;
+
+            return {
+                userId: data.userId ?? "",
+                email: data.email ?? "",
+                nickname: data.nickname ?? "",
+                cachedAt: data.cachedAt ?? Date.now(),
+            };
         } catch {
             return null;
         }
     }
 
-    static clearCache(key = "userSession") {
-        try { localStorage.removeItem(key); } 
-        catch {
-            // manejar storage no disponible
+    static loadFromCache(): UserSession | null {
+        try {
+            const raw = localStorage.getItem("user_session");
+            if (!raw) return null;
+
+            const data = JSON.parse(raw);
+            const session = UserSession.fromPlain(data);
+
+            // Si está corrupta → descartar
+            if (!session.isLoggedIn()) return null;
+
+            return session;
+        } catch {
+            return null;
         }
     }
 
-    isSessionActive(): boolean {
-        return typeof this.userId === "string" && this.userId.length > 0 &&
-               typeof this.tokenFirebase === "string" && this.tokenFirebase.length > 0;
+    static clear() {
+        try {
+            localStorage.removeItem("user_session");
+            localStorage.removeItem("user_profile");
+        } catch { /* ignore */ }
     }
 }

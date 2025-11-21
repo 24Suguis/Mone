@@ -29,6 +29,6 @@ describe("HU02 - Inicio de sesión", () => {
 
   test("E2b - Inválido: correo no registrado", async () => {
     await expect(userService.logIn("al987654@uji.es", "Codigo1Secreto2"))
-      .rejects.toThrow("UserNotFound");
+      .rejects.toThrow("InvalidCredentials");
   });
 });

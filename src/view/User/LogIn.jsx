@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useUserViewModel } from "../viewmodel/UserViewModel";
+import { useUserViewModel } from "../../viewmodel/UserViewModel";
 
 export default function LogIn({ onSuccess }) {
   const navigate = useNavigate();
@@ -78,7 +78,7 @@ export default function LogIn({ onSuccess }) {
             <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", fontWeight: "600" }}>
                 {loading ? "Verificando..." : "Log In"}
             </button>
-            {(localError || message) && <p style={{ color: "red", marginTop: "0.6rem" }}>{localError || message}</p>}
+            {(message) && <p style={{ color: "red", marginTop: "0.6rem" }}>{message}</p>}
 
             {errors.email && <p className="error-text">{errors.email}</p>}
             {errors.password && <p className="error-text">{errors.password}</p>}
