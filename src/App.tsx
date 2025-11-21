@@ -1,20 +1,19 @@
 import { useState } from 'react'
-import './App.css'
+import '../styles/styles.css'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import SignUp from './view/SignUp'
+import LogIn from './view/LogIn'
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-        <BrowserRouter>
-      <HeaderComponent />
+    <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<LogIn />} />
-        <Route path="/logout" element={<LogOut />} />
+        <Route path="/" element={<h1>Hola Mone</h1>} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/login" element={<LogIn />} />
       </Routes>
-      <FooterComponent />
     </BrowserRouter>
   )
 }
