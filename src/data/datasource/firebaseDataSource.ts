@@ -22,8 +22,45 @@ const db = getFirestore(firebaseApp);
 export class FirebaseDataSource {
   private userCollection = collection(db, "users");
 
-  async updateUserProfile(userId: string, tempUser: User): Promise<void> {
+  async getUserById(userId: string): Promise<User | null> {
     const ref = doc(db, "users", userId);
+    const snapshot = await getDoc(ref);
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data() as any;
+    // Construye la entidad de dominio User (no guardamos password en Firestore)
+    const user = new User(data.email ?? "", data.nickname ?? "");
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<any | null> {
+    try {
+      const q = query(this.userCollection, where("email", "==", email));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch {
+      return null;
+    }
+  }
+
+  // rename parameter to avoid shadowing the imported class
+  async saveUser(userId: string, user: User): Promise<string> {
+    const ref = doc(db, "users", userId);
+    await setDoc(
+      ref,
+      {
+        email: user.getEmail(),
+        nickname: user.getNickname(),
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return userId;
+  }
+
+  async updateUserProfile(userId: string, tempUser: User): Promise<void> {
+    const ref = doc(db, "users", userId.trim());
     const payload = {
       email: tempUser.getEmail(),
       nickname: tempUser.getNickname(),
