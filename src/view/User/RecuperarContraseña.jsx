@@ -32,7 +32,7 @@ export const RecuperarContraseña = () => {
             placeholder="Email"
           />
 
-          <button className='recuperarContraseña' type="submit" disabled={loading}>
+          <button className='recuperarContraseña btn-secondary' type="submit" disabled={loading}>
             {loading ? "Sending..." : "Send recovery link"}
           </button>
 
