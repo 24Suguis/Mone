@@ -23,4 +23,4 @@ jobs:
         run: npm install
 
       - name: Run Vitest in integration tests
-        run: npx vitest 'tests/**/integration/*.test.{js,ts}'
+        run: npx vitest 'tests/**/integration/**.test.ts'
