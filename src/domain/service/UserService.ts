@@ -192,8 +192,10 @@ export class UserService {
       //Contemplar hacer una comprobación de que email y currentUserId son el mismo usuario
       //Contemplar reautenticar aquí: par que esté cerca del borrado en FireStore, pero no en él porque ahí no se puede usar auth
       const session = UserSession.loadFromCache();
-      const userbbdd = await this.userRepository.getUserByEmail(email);
+      
       if (!session) throw new Error("UserNotFound");
+
+    //  const userbbdd = await this.userRepository.getUserByEmail(email);
 
       const currentUserId = session.userId;
        

@@ -44,6 +44,7 @@ export class FirebaseAuthAdapter implements AuthProvider {
     try {
       await deleteUser(currentUser);
     } catch (error) {
+      console.log("Error deleting user from Firebase Auth:", error);
       throw handleAuthError(error as FirebaseError);
     }
 
