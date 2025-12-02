@@ -7,6 +7,7 @@ import AccountManagement from './view/User/AccountManagement'
 import RecuperarContraseña from './view/User/RecuperarContraseña'
 import LogOut from './view/User/LogOut'
 import NewPlace from './view/Place/NewPlace'
+import VehiclesPage from './view/vehicle/VehiclesPage'
 function App() {
   const [count, setCount] = useState(0)
 
@@ -21,6 +22,7 @@ function App() {
         <Route path="/recover-password" element={<RecuperarContraseña />} />
         <Route path="/logout" element={<LogOut />} />
         <Route path="/newplace" element={<NewPlace />} />
+        <Route path="/vehiclespage"  element={<VehiclesPage />} />
       </Routes>
     </BrowserRouter>
   )

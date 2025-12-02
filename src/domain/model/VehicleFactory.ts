@@ -1,4 +1,4 @@
-// src/model/VehicleFactory.ts
+    // src/model/VehicleFactory.ts
 import type { Vehicle, FuelType } from './VehicleInterface';
 import { Bike, ElectricCar, FuelCar } from './vehicles';
 import { isValidVehicleName } from '../../core/utils/validators';

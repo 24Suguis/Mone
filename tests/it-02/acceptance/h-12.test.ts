@@ -1,13 +1,9 @@
 
 import { describe, test, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from "vitest";
 import { UserService } from "../../../src/domain/service/UserService";
-import { UserSession } from "../../../src/domain/session/UserSession";
-import { collection, deleteDoc, getDocs } from "firebase/firestore";
-import { db } from "../../../src/core/config/firebaseConfig";
-import { VehicleFactory } from "../../../src/domain/model/VehicleFactory";
-import type { Vehicle } from "../../../src/domain/model/VehicleInterface";
+
 import { VehicleService } from "../../../src/domain/service/VehicleService";
-import { VehicleRepositoryFirebase } from "../../../src/data/repository/VehicleRepositoryFriebase";
+import { VehicleRepositoryFirebase } from "../../../src/data/repository/VehicleRepositoryFirebase";
 
 const vehicleService = VehicleService.getInstance(new VehicleRepositoryFirebase());
 const userService = UserService.getInstance();
