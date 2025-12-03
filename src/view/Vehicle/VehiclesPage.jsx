@@ -22,11 +22,21 @@ export default function VehiclesPage() {
 
   //provisional, currarme un modal con formulario sweetalert2
   const handleAddClick = async () => {
+    let res;
     const { value: name } = await Swal.fire({
       title: "Vehicle name",
       input: "text",
       inputPlaceholder: "Enter vehicle name",
       showCancelButton: true,
+      background: "#CCD5B9",
+      color: "#585233",
+      customClass: {
+        confirmButton: "my-confirm-btn",
+        cancelButton: "my-cancel-btn",
+        input: "my-input"
+      },
+
+
       inputValidator: (value) => !value && "You need to write something!"
     });
 
@@ -34,18 +44,39 @@ export default function VehiclesPage() {
 
     const { value: type } = await Swal.fire({
       title: "Vehicle type",
-      input: "select",
       inputOptions: {
         bike: "Bike",
         walking: "Walking",
         fuelCar: "Fuel Car",
         electricCar: "Electric Car",
       },
+      html: `
+    <select id="vehicleType" class="my-select">
+      <option value="" disabled selected>Select vehicle type</option>
+      <option value="bike">Bike</option>
+      <option value="walking">Walking</option>
+      <option value="fuelCar">Fuel Car</option>
+      <option value="electricCar">Electric Car</option>
+    </select>
+  `,
+      background: "#CCD5B9",
+      color: "#585233",
+      customClass: {
+        confirmButton: "my-confirm-btn",
+        cancelButton: "my-cancel-btn"
+      },
+
       inputPlaceholder: "Select vehicle type",
       showCancelButton: true,
+      focusConfirm: false,// para que no haga focus en el botón y deje seleccionar
+      preConfirm: () => {
+        res = Swal.getPopup().querySelector('#vehicleType');
+        return res.value;
+      },
       inputValidator: (value) => !value && "You must select a type"
     });
 
+    //console.log(type);
     if (!type) return;
 
     let fuelType;
@@ -54,16 +85,40 @@ export default function VehiclesPage() {
     if (type === "fuelCar") {
       const { value: fuel } = await Swal.fire({
         title: "Fuel Type",
-        input: "select",
         inputOptions: {
           gasoline: "Gasoline",
           diesel: "Diesel",
         },
-        inputPlaceholder: "Select fuel type",
+        background: "#CCD5B9",
+        color: "#585233",
+        customClass: {
+          confirmButton: "my-confirm-btn",
+          cancelButton: "my-cancel-btn"
+        },
+        html: `
+      <select id="fuelType" class="my-select">
+        <option value="" disabled selected>Select fuel type</option>
+        <option value="gasoline">Gasoline</option>
+        <option value="diesel">Diesel</option>
+      </select>
+    `,
+        background: "#CCD5B9",
+        color: "#585233",
+        customClass: {
+          confirmButton: "my-confirm-btn",
+          cancelButton: "my-cancel-btn"
+        },
+        focusConfirm: false,// para que no haga focus en el botón y deje seleccionar
+        preConfirm: () => {
+          res = Swal.getPopup().querySelector('#fuelType');
+          return res.value;
+          console.log(res);
+        },
         showCancelButton: true,
         inputValidator: (value) => !value && "Select a fuel type",
       });
 
+      console.log(fuel);
       if (!fuel) return;
       fuelType = fuel;
 
@@ -72,6 +127,14 @@ export default function VehiclesPage() {
         input: "number",
         inputPlaceholder: "Enter consumption",
         inputAttributes: { min: "0", step: "0.1" },
+        background: "#CCD5B9",
+        color: "#585233",
+        customClass: {
+          confirmButton: "my-confirm-btn",
+          cancelButton: "my-cancel-btn",
+          input: "my-input"
+        },
+
         showCancelButton: true,
         inputValidator: (value) =>
           !value || parseFloat(value) <= 0
@@ -82,7 +145,7 @@ export default function VehiclesPage() {
       if (!cons) return;
       consumption = parseFloat(cons);
     }
-    else if (type==='electricCar'){
+    else if (type === 'electricCar') {
       fuelType = "electric";
       const { value: cons } = await Swal.fire({
         title: "Consumption (kWh/100km)",
@@ -90,6 +153,14 @@ export default function VehiclesPage() {
         inputPlaceholder: "Enter consumption",
         inputAttributes: { min: "0", step: "0.1" },
         showCancelButton: true,
+        background: "#CCD5B9",
+        color: "#585233",
+        customClass: {
+          confirmButton: "my-confirm-btn",
+          cancelButton: "my-cancel-btn",
+          input: "my-input"
+        },
+
         inputValidator: (value) =>
           !value || parseFloat(value) <= 0
             ? "Consumption must be greater than 0"
