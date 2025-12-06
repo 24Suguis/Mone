@@ -14,39 +14,65 @@ import {
     serverTimestamp,
 } from "firebase/firestore";
 import { firebaseApp } from "../../core/config/firebaseConfig";
-import { type Vehicle } from "../../domain/model/VehicleInterface";
+import { type Vehicle, type FuelType, type Consumption } from "../../domain/model/VehicleInterface";
 import { VehicleFactory } from "../../domain/model/VehicleFactory";
 
 import type { VehicleRepositoryInterface } from "../../domain/repository/VehicleRepositoryInterface";
 
 const db = getFirestore(firebaseApp);
 
+
+
+type VehicleDoc = {
+    type: string;
+    name: string;
+    fuelType?: string | null;
+    consumption?: number | undefined;
+    //{ amount: number; unit?: Consumption["unit"]}
+};
+
+const collectionForUser = (userId: string) => {
+    if (!userId) throw new Error("User id is required to access vehicles");
+    // Cada usuario guarda sus vehículos en /users/{uid}/vehicles para aislar la información.
+    return collection(db, "users", userId, "vehicles");
+};
+
+const normalizeFuelType = (fuelType?: string | null): FuelType | undefined => {
+    if (fuelType === "gasoline" || fuelType === "diesel" || fuelType === "electric") {
+        return fuelType;
+    }
+    return undefined;
+};
+
+
+
 export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
-    private vehicleCollection = collection(db, "vehicles");
 
     //LISTAR VEHICULOS POR OWNERID
     async getVehiclesByOwnerId(ownerId: string): Promise<Vehicle[]> {
-        const q = query(this.vehicleCollection, where("ownerId", "==", ownerId));
+        const q = query(collectionForUser(ownerId));
         const snapshot = await getDocs(q);
 
         return snapshot.docs.map((d) => {
-            const data = d.data() as any;
+            const data = d.data() as VehicleDoc;
+            const normalizedFuel = normalizeFuelType(data.fuelType);
+        
             const type = data.type;
             console.log("Vehicle type from Firestore:", type);
             console.log("Vehicle data from Firestore:", data);
 
             switch (type.toLowerCase()) {
                 case "bike":
-                    return VehicleFactory.createVehicle("bike", data.name, undefined, data.consumption);
+                    return VehicleFactory.createVehicle("bike", data.name, undefined, data.consumption.amount ? data.consumption : undefined);
 
                 case "walking":
-                    return VehicleFactory.createVehicle("walking", data.name, undefined, data.consumption);
+                    return VehicleFactory.createVehicle("walking", data.name, undefined, data.consumption.amount ? data.consumption : undefined);
 
                 case "fuelcar":
-                    return VehicleFactory.createVehicle("fuelCar", data.name, data.fuelType, data.consumption);
+                    return VehicleFactory.createVehicle("fuelCar", data.name, normalizedFuel, data.consumption.amount ? data.consumption : undefined);
 
                 case "electriccar":
-                    return VehicleFactory.createVehicle("electricCar", data.name, data.fuelType, data.consumption);
+                    return VehicleFactory.createVehicle("electricCar", data.name, normalizedFuel, data.consumption.amount ? data.consumption : undefined);
 
                 default:
                     console.error("Unknown vehicle type in Firestore:", data);
@@ -59,7 +85,7 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
 
 
     async deleteVehicle(ownerId: string, vehicleName: string): Promise<void> {
-        const q = query(this.vehicleCollection, where("ownerId", "==", ownerId), where("name", "==", vehicleName));
+        const q = query(collectionForUser(ownerId), where("name", "==", vehicleName));
         const snapshot = await getDocs(q);
         if (snapshot.empty) throw new Error("VehicleNotFoundException");
 
@@ -70,7 +96,9 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
 
     //guardar un vehiculo 
     async saveVehicle(ownerId: string, vehicle: Vehicle): Promise<void> {
-        await addDoc(this.vehicleCollection, {
+        // Usamos collectionForUser para escribir siempre dentro de /users/{uid}/vehicles
+        // en lugar de en una colección global "vehicles" que mezclaría datos de todos los usuarios.
+        await addDoc(collectionForUser(ownerId), {
             ownerId,
             type: vehicle.type,
             name: vehicle.name,

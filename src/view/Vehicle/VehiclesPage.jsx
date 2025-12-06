@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import EditDeleteActions from "./EditDeleteActions";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import Swal from "sweetalert2";
@@ -34,179 +34,197 @@ export default function VehiclesPage() {
     }
   };
 
-  //provisional, currarme un modal con formulario sweetalert2
   const handleAddClick = async () => {
-    let res;
-    const { value: name } = await Swal.fire({
-      title: "Vehicle name",
-      input: "text",
-      inputPlaceholder: "Enter vehicle name",
-      showCancelButton: true,
-      background: "#CCD5B9",
-      color: "#585233",
-      customClass: {
-        confirmButton: "my-confirm-btn",
-        cancelButton: "my-cancel-btn",
-        input: "my-input"
-      },
+    const formState = {
+      name: "",
+      type: "",
+      fuelType: null,
+      consumption: null,
+    };
 
+    const buildTypeOptions = () => `
+      <option value="" disabled ${formState.type ? "" : "selected"}>Select vehicle type</option>
+      <option value="bike" ${formState.type === "bike" ? "selected" : ""}>Bike</option>
+      <option value="walking" ${formState.type === "walking" ? "selected" : ""}>Walking</option>
+      <option value="fuelCar" ${formState.type === "fuelCar" ? "selected" : ""}>Fuel Car</option>
+      <option value="electricCar" ${formState.type === "electricCar" ? "selected" : ""}>Electric Car</option>
+    `;
 
-      inputValidator: (value) => {
-        if (!value) return "You need to write something!";
-        if (!isValidVehicleName(value)) return "Invalid name format, cannot contain special characters or letter 'ñ'.";
-        return null;
+    const buildFuelOptions = () => `
+      <option value="" disabled ${formState.fuelType ? "" : "selected"}>Select fuel type</option>
+      <option value="gasoline" ${formState.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
+      <option value="diesel" ${formState.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
+    `;
+
+    const customClass = {
+      confirmButton: "my-confirm-btn",
+      cancelButton: "my-cancel-btn",
+      denyButton: "my-back-btn",
+      input: "my-input",
+    };
+
+    let step = "name";
+
+    while (true) {
+      if (step === "name") {
+        const nameResult = await Swal.fire({
+          title: "Vehicle name",
+          input: "text",
+          inputValue: formState.name,
+          inputPlaceholder: "Enter vehicle name",
+          showCancelButton: true,
+          confirmButtonText: "Next",
+          cancelButtonText: "Cancel",
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          inputValidator: (value) => {
+            if (!value) return "You need to write something!";
+            if (!isValidVehicleName(value)) return "Invalid name format, cannot contain special characters or letter 'ñ'.";
+            return null;
+          },
+        });
+
+        if (nameResult.isDismissed) return;
+        formState.name = nameResult.value;
+        step = "type";
+        continue;
       }
-    });
 
-    if (!name) return;
+      if (step === "type") {
+        const typeResult = await Swal.fire({
+          title: "Vehicle type",
+          html: `
+            <select id="vehicleType" class="my-select">
+              ${buildTypeOptions()}
+            </select>
+          `,
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          showCancelButton: true,
+          showDenyButton: true,
+          denyButtonText: "Back",
+          confirmButtonText: "Next",
+          focusConfirm: false,
+          preConfirm: () => {
+            const select = Swal.getPopup().querySelector('#vehicleType');
+            const value = select?.value;
+            if (!value) {
+              Swal.showValidationMessage("You must select a type");
+              return;
+            }
+            return value;
+          },
+        });
 
-    const { value: type } = await Swal.fire({
-      title: "Vehicle type",
-      inputOptions: {
-        bike: "Bike",
-        walking: "Walking",
-        fuelCar: "Fuel Car",
-        electricCar: "Electric Car",
-      },
-      html: `
-    <select id="vehicleType" class="my-select">
-      <option value="" disabled selected>Select vehicle type</option>
-      <option value="bike">Bike</option>
-      <option value="walking">Walking</option>
-      <option value="fuelCar">Fuel Car</option>
-      <option value="electricCar">Electric Car</option>
-    </select>
-  `,
-      background: "#CCD5B9",
-      color: "#585233",
-      customClass: {
-        confirmButton: "my-confirm-btn",
-        cancelButton: "my-cancel-btn"
-      },
+        if (typeResult.isDenied) {
+          step = "name";
+          continue;
+        }
+        if (typeResult.isDismissed) return;
 
-      inputPlaceholder: "Select vehicle type",
-      showCancelButton: true,
-      focusConfirm: false,// para que no haga focus en el botón y deje seleccionar
-      preConfirm: () => {
-        res = Swal.getPopup().querySelector('#vehicleType');
-        return res.value;
-      },
-      inputValidator: (value) => !value && "You must select a type"
-    });
+        formState.type = typeResult.value;
+        formState.fuelType =
+          formState.type === "fuelCar"
+            ? formState.fuelType
+            : formState.type === "electricCar"
+              ? "electric"
+              : null;
+        step = formState.type === "fuelCar" ? "fuelType" : "consumption";
+        continue;
+      }
 
-    //console.log(type);
-    if (!type) return;
+      if (step === "fuelType") {
+        const fuelResult = await Swal.fire({
+          title: "Fuel Type",
+          html: `
+            <select id="fuelType" class="my-select">
+              ${buildFuelOptions()}
+            </select>
+          `,
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          showCancelButton: true,
+          showDenyButton: true,
+          denyButtonText: "Back",
+          confirmButtonText: "Next",
+          focusConfirm: false,
+          preConfirm: () => {
+            const select = Swal.getPopup().querySelector('#fuelType');
+            const value = select?.value;
+            if (!value) {
+              Swal.showValidationMessage("Select a fuel type");
+              return;
+            }
+            return value;
+          },
+        });
 
-    let fuelType;
-    let consumption;
+        if (fuelResult.isDenied) {
+          step = "type";
+          continue;
+        }
+        if (fuelResult.isDismissed) return;
 
-    if (type === "fuelCar") {
-      const { value: fuel } = await Swal.fire({
-        title: "Fuel Type",
-        inputOptions: {
-          gasoline: "Gasoline",
-          diesel: "Diesel",
-        },
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-          cancelButton: "my-cancel-btn"
-        },
-        html: `
-      <select id="fuelType" class="my-select">
-        <option value="" disabled selected>Select fuel type</option>
-        <option value="gasoline">Gasoline</option>
-        <option value="diesel">Diesel</option>
-      </select>
-    `,
-        background: "#CCD5B9",
-        color: "#585233",
-        focusConfirm: false,// para que no haga focus en el botón y deje seleccionar
-        preConfirm: () => {
-          res = Swal.getPopup().querySelector('#fuelType');
-          return res.value;
-        },
-        showCancelButton: true,
-        inputValidator: (value) => !value && "Select a fuel type",
-      });
+        formState.fuelType = fuelResult.value;
+        step = "consumption";
+        continue;
+      }
 
-      if (!fuel) return;
-      fuelType = fuel;
+      if (step === "consumption") {
+        const unitLabel =
+          formState.type === "fuelCar"
+            ? "L/100km"
+            : formState.type === "electricCar"
+              ? "kWh/100km"
+              : "Kcal/min";
 
-      const { value: cons } = await Swal.fire({
-        title: "Consumption (L/100km)",
-        input: "number",
-        inputPlaceholder: "Enter consumption",
-        inputAttributes: { min: "0", step: "0.1" },
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-          cancelButton: "my-cancel-btn",
-          input: "my-input"
-        },
+        const consumptionResult = await Swal.fire({
+          title: `Consumption (${unitLabel})`,
+          input: "number",
+          inputValue: formState.consumption ?? "",
+          inputPlaceholder: "Enter consumption",
+          inputAttributes: { min: "0", step: "0.1" },
+          showCancelButton: true,
+          showDenyButton: true,
+          denyButtonText: "Back",
+          confirmButtonText: "Save",
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          preConfirm: (value) => {
+            if (!value) {
+              Swal.showValidationMessage("Consumption is required");
+              return;
+            }
+            const numeric = parseFloat(value);
+            if (Number.isNaN(numeric) || numeric <= 0) {
+              Swal.showValidationMessage("Consumption must be greater than 0");
+              return;
+            }
+            return numeric;
+          },
+        });
 
-        showCancelButton: true,
-        inputValidator: (value) =>
-          !value || parseFloat(value) <= 0
-            ? "Consumption must be greater than 0"
-            : null,
-      });
+        if (consumptionResult.isDenied) {
+          step = formState.type === "fuelCar" ? "fuelType" : "type";
+          continue;
+        }
+        if (consumptionResult.isDismissed) return;
 
-      if (!cons) return;
-      consumption = parseFloat(cons);
+        formState.consumption = consumptionResult.value;
+        break;
+      }
     }
-    else if (type === 'electricCar') {
-      fuelType = "electric";
-      const { value: cons } = await Swal.fire({
-        title: "Consumption (kWh/100km)",
-        input: "number",
-        inputPlaceholder: "Enter consumption",
-        inputAttributes: { min: "0", step: "0.1" },
-        showCancelButton: true,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-          cancelButton: "my-cancel-btn",
-          input: "my-input"
-        },
 
-        inputValidator: (value) =>
-          !value || parseFloat(value) <= 0
-            ? "Consumption must be greater than 0"
-            : null,
-      });
-      if (!cons) return;
-      consumption = parseFloat(cons);
-    }
-    else if (type === 'walking' || type === 'bike') {
-      fuelType = null;
-      const { value: cons } = await Swal.fire({
-        title: "Consumption (Kcal/min)",
-        input: "number",
-        inputPlaceholder: "Enter consumption",
-        inputAttributes: { min: "0", step: "0.1" },
-        showCancelButton: true,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-          cancelButton: "my-cancel-btn",
-          input: "my-input"
-        },
-
-        inputValidator: (value) =>
-          !value || parseFloat(value) <= 0
-            ? "Consumption must be greater than 0"
-            : null,
-      });
-      if (!cons) return;
-      consumption = parseFloat(cons);
-    }
-    // llamar al viewmodel
-    await addVehicle(type, name, fuelType, consumption);
+    await addVehicle(
+      formState.type,
+      formState.name,
+      formState.fuelType,
+      formState.consumption ?? undefined
+    );
   };
 
   const handleDelete = async (id) => {
@@ -296,7 +314,7 @@ export default function VehiclesPage() {
           <svg className="add-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d={PLUS_ICON_PATH} />
           </svg>
-          Add Vehicle
+          Add Mobility Method
         </button>
       </div>
 

@@ -1076,6 +1076,17 @@ textarea {
   transition: 1s;
 }
 
+.my-back-btn {
+  background-color: #706d5f;
+  color: white;
+  border-radius: 8px;
+}
+.my-back-btn:hover {
+  background-color: #5e5323;
+  color: #f0fdfa;
+  transition: 0.6s ease;
+}
+
 .my-confirm-btn {
   background-color: var(--color-primary);  
   color: white;
