@@ -54,14 +54,26 @@ export class PlaceService {
         }
 
         async getSavedPlaces(userId?: string): Promise<any[]> {
-           const resolvedId = this.resolveUserId(userId)
-                if(!resolvedId){
-                    throw new Error("SessionNotFoundException");
+            if (userId) {
+                try {
+                    const places = await this.placeRepository.getPlacesByUser(userId);
+                    return places;
+                } catch (error) {
+                    if (error instanceof Error) handleAuthError(error);
+                    throw error;
                 }
-                
-                console.log("enmedio");
-            return this.placeRepository.getPlacesByUser(resolvedId);
-   
+            }
+            const session = this.sessionProvider();
+            if (!session || !session.userId) {
+                throw new Error("SessionNotFoundException");
+            }
+            try {
+                const places = await this.placeRepository.getPlacesByUser(session.userId);
+                return places;
+            } catch (error) {
+                if (error instanceof Error) handleAuthError(error);
+                throw error;
+            }
         }
 
         async getPlaceDetails(placeId: string, userId?: string): Promise<any | null> {
@@ -79,6 +91,7 @@ export class PlaceService {
                 place.description ?? ""
             );
             await this.ensureUniquePlace(resolvedId, entity);
+
             const docId = await this.placeRepository.createPlace(resolvedId, entity);
             const created = await this.placeRepository.getPlaceById(resolvedId, docId);
             if (!created) throw new Error("Place could not be created");
@@ -101,6 +114,7 @@ export class PlaceService {
             if (!refreshed) throw new Error("Place could not be refreshed after edit");
             return refreshed;
         }
+
 
         async editPlaceByName(name: string, newName?: string, newDescription?: string): Promise<void> {
             const places = await this.getSavedPlaces();
@@ -130,6 +144,7 @@ export class PlaceService {
             throw new Error("PlaceNotDeletedException");
         }
 
+        
         async deletePlace(placeId: string, options: { userId?: string } = {}): Promise<void> {
             const resolvedId = this.resolveUserId(options.userId);
             await this.placeRepository.deletePlace(resolvedId, placeId);
@@ -145,9 +160,9 @@ export class PlaceService {
             }
             throw new Error("PlaceNotDeletedException");
         }
-           
 
-        private async ensureUniquePlace(userId: string, candidate: Place): Promise<void> {
+
+         private async ensureUniquePlace(userId: string, candidate: Place): Promise<void> {
             const normalizedName = candidate.name?.trim().toLowerCase();
             const normalizedToponym = candidate.toponymicAddress?.trim().toLowerCase();
             const coordinatesEmpty = !candidate.latitude && !candidate.longitude;

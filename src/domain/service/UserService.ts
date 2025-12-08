@@ -112,8 +112,14 @@ export class UserService {
     try {
       await this.authProvider.logOut();
     } catch (Error) {
+      try {
+        UserSession.clear();
+      } catch { /* ignore */ }
       throw handleAuthError(Error as FirebaseError);
     }
+    try {
+      UserSession.clear();
+    } catch { /* ignore */ }
   }
 
 

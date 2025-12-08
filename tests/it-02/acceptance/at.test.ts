@@ -3,7 +3,7 @@ import { PlaceService } from "../../../src/domain/service/PlaceService";
 import { UserService } from "../../../src/domain/service/UserService";
 import { UserSession } from "../../../src/domain/session/UserSession";
 import { collection, deleteDoc, getDocs } from "firebase/firestore";
-import { db } from "../../../src/core/config/firebaseConfig";
+import { db, auth } from "../../../src/core/config/firebaseConfig";
 import { Place } from "../../../src/domain/model/Place";
 
 const LONG_TIMEOUT = 20000;
@@ -65,6 +65,9 @@ const userPlacesCollection = () => collection(db, "users", requireUserId(), "pla
 
 const cleanupUserPlaces = async () => {
 	if (!testUserId) return;
+	// Si no hay usuario autenticado en Firebase (por ejemplo, tras logOut en H09-E3),
+	// evitamos disparar operaciones que Firebase rechazará con "Missing or insufficient permissions".
+	if (!auth?.currentUser) return;
 	const snapshot = await getDocs(userPlacesCollection());
 	await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
 };
