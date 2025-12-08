@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useAuth } from "../../../context/AuthContext";
+import { useNavigate, useParams } from "react-router-dom";
 import LeafletMap from "../components/LeafletMap.jsx";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 
@@ -18,90 +18,89 @@ const BUTTON_CONTENT_STYLE = {
 const PLUS_ICON_PATH = "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
 const CHECK_ICON_PATH = "M9.5 16.5 5 12l1.4-1.4 3.1 3.09 8.1-8.09L19 7l-9.5 9.5z";
 
-export default function NewPlace() {
-  const { user } = useAuth?.() ?? { user: null };
+export default function EditPlace() {
+  const { placeId } = useParams();
+  const navigate = useNavigate();
 
-  // name: nombre final editable por el usuario
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
   const [name, setName] = useState("");
-  // indicador: true si el usuario ha editado name manualmente
   const [nameTouched, setNameTouched] = useState(false);
-
-  // placeName: topónimo buscado/introducido (siempre visible cuando mode === "place")
   const [placeName, setPlaceName] = useState("");
-
-  // descripción se mantiene en placeInfo.description para compatibilidad
   const [placeInfo, setPlaceInfo] = useState({ description: "" });
-
   const [coords, setCoords] = useState({ lat: "", lng: "" });
-  const [mode, setMode] = useState("place"); // "place" | "coords"
+  const [mode, setMode] = useState("place");
   const [formError, setFormError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState({ name: "", placeName: "", coords: "" });
 
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionError, setSuggestionError] = useState("");
+  const [allowSuggestions, setAllowSuggestions] = useState(false);
 
-  const defaultCenter = [39.992560, -0.067387];
+  const defaultCenter = [39.99256, -0.067387];
   const [markerPos, setMarkerPos] = useState(defaultCenter);
+
   const clearSuccessFeedback = useCallback(() => {
     setSuccessMessage((prev) => (prev ? "" : prev));
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError("");
-    setSuccessMessage("");
-    setFieldErrors({ name: "", placeName: "", coords: "" });
-
-    const baseName = placeName.trim();
-    const trimmedName = name.trim();
-    const finalName = trimmedName || baseName;
-    const latValue = coords.lat ? parseFloat(coords.lat) : markerPos[0];
-    const lngValue = coords.lng ? parseFloat(coords.lng) : markerPos[1];
-
-    const validationErrors = { name: "", placeName: "", coords: "" };
-    if (!finalName) {
-      validationErrors.name = "Please enter a name or pick a suggestion.";
-      validationErrors.placeName = "Type a toponym to search for nearby places.";
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/listplaces");
     }
-    if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) {
-      validationErrors.coords = "Select valid coordinates on the map or type them manually.";
-    }
+  }, [navigate]);
 
-    const hasErrors = Object.values(validationErrors).some(Boolean);
-    if (hasErrors) {
-      setFieldErrors(validationErrors);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const payload = {
-        name: finalName,
-        description: placeInfo.description?.trim() || undefined,
-        latitude: latValue,
-        longitude: lngValue,
-        toponymicAddress: baseName || undefined,
-      };
-      const saved = await placeViewmodel.savePlace(payload, user?.uid);
-      setSuccessMessage(`Place "${saved.name}" saved successfully.`);
-    } catch (err) {
-      const msg = err?.message || "The place could not be saved.";
-      if (String(msg).includes("PlaceAlreadySavedException")) {
-        setFormError("This place is already saved.");
-      } else {
-        setFormError(msg);
+  useEffect(() => {
+    const loadPlace = async () => {
+      if (!placeId) {
+        setLoadError("Invalid place identifier.");
+        setLoading(false);
+        return;
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setLoading(true);
+        const data = await placeViewmodel.getPlace(placeId);
+        if (!data) {
+          setLoadError("Place not found or you do not have access to it.");
+          return;
+        }
+        const lat = Number(data.latitude);
+        const lng = Number(data.longitude);
+        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
+        setName(data.name ?? "");
+        setNameTouched(false);
+        const initialToponym = data.toponymicAddress ?? data.name ?? "";
+        setPlaceName(initialToponym);
+        setPlaceInfo({ description: data.description ?? "" });
+        setCoords({
+          lat: hasCoords ? lat.toFixed(6) : "",
+          lng: hasCoords ? lng.toFixed(6) : "",
+        });
+        setMarkerPos(hasCoords ? [lat, lng] : defaultCenter);
+        setMode(initialToponym ? "place" : "coords");
+        setFieldErrors({ name: "", placeName: "", coords: "" });
+        setLoadError("");
+        setAllowSuggestions(false);
+      } catch (err) {
+        setLoadError(err?.message || "Unable to load this place.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlace();
+  }, [placeId]);
 
   useEffect(() => {
     const query = placeName.trim();
-    if (mode !== "place" || query.length < 3) {
+    if (!allowSuggestions || mode !== "place" || query.length < 3) {
       setSuggestions([]);
       setSuggestionError("");
       return;
@@ -125,7 +124,24 @@ export default function NewPlace() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [placeName, mode]);
+  }, [placeName, mode, allowSuggestions]);
+
+  const fetchToponymFromCoords = useCallback(
+    async (lat, lng) => {
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      try {
+        const suggestion = await placeViewmodel.toponymFromCoords(lat, lng);
+        if (suggestion?.label) {
+          setPlaceName(suggestion.label);
+          if (!nameTouched) setName(suggestion.label);
+          setFieldErrors((prev) => ({ ...prev, name: "", placeName: "" }));
+        }
+      } catch (err) {
+        console.warn("Could not resolve toponym", err);
+      }
+    },
+    [nameTouched]
+  );
 
   const applyCoords = () => {
     clearSuccessFeedback();
@@ -146,6 +162,7 @@ export default function NewPlace() {
   const onPlaceNameChange = (val) => {
     clearSuccessFeedback();
     setPlaceName(val);
+    setAllowSuggestions(true);
     setFieldErrors((prev) => ({ ...prev, placeName: "" }));
     if (!nameTouched) {
       setName(val);
@@ -164,23 +181,6 @@ export default function NewPlace() {
     setPlaceInfo((prev) => ({ ...prev, description: val }));
   };
 
-  const fetchToponymFromCoords = useCallback(
-    async (lat, lng) => {
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-      try {
-        const suggestion = await placeViewmodel.toponymFromCoords(lat, lng);
-        if (suggestion?.label) {
-          setPlaceName(suggestion.label);
-          if (!nameTouched) setName(suggestion.label);
-          setFieldErrors((prev) => ({ ...prev, name: "", placeName: "" }));
-        }
-      } catch (err) {
-        console.warn("Could not resolve toponym", err);
-      }
-    },
-    [nameTouched]
-  );
-
   const updateCoords = (field, value) => {
     clearSuccessFeedback();
     setCoords((prev) => ({ ...prev, [field]: value }));
@@ -196,18 +196,93 @@ export default function NewPlace() {
     }
     setMode("place");
     setSuggestions([]);
+    setAllowSuggestions(false);
     setFieldErrors({ name: "", placeName: "", coords: "" });
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!placeId) return;
+    setFormError("");
+    setFieldErrors({ name: "", placeName: "", coords: "" });
+    setSuccessMessage("");
+
+    const baseName = placeName.trim();
+    const trimmedName = name.trim();
+    const finalName = trimmedName || baseName;
+    const latValue = coords.lat ? parseFloat(coords.lat) : markerPos[0];
+    const lngValue = coords.lng ? parseFloat(coords.lng) : markerPos[1];
+
+    const validationErrors = { name: "", placeName: "", coords: "" };
+    if (!finalName) {
+      validationErrors.name = "Please enter a name or pick a suggestion.";
+      validationErrors.placeName = "Type a toponym to search for nearby places.";
+    }
+    if (!Number.isFinite(latValue) || !Number.isFinite(lngValue)) {
+      validationErrors.coords = "Select valid coordinates on the map or type them manually.";
+    }
+
+    const hasErrors = Object.values(validationErrors).some(Boolean);
+    if (hasErrors) {
+      setFieldErrors(validationErrors);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await placeViewmodel.updatePlace(placeId, {
+        name: finalName,
+        description: placeInfo.description?.trim() || undefined,
+        latitude: latValue,
+        longitude: lngValue,
+        toponymicAddress: baseName || undefined,
+      });
+      setSuccessMessage(`Place "${finalName}" updated successfully.`);
+    } catch (err) {
+      const msg = err?.message || "The place could not be updated.";
+      setFormError(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const isSuccess = Boolean(successMessage);
-  const buttonLabel = isSuccess ? "Place added successfully" : "Add the new place";
+  const buttonLabel = isSuccess ? "Changes saved" : "Save changes";
   const buttonIconPath = isSuccess ? CHECK_ICON_PATH : PLUS_ICON_PATH;
   const buttonStyle = isSuccess ? SUCCESS_BUTTON_STYLE : undefined;
+
+  if (loading) {
+    return (
+      <div className="page-content">
+        <div className="default-container with-border" style={{ textAlign: "center" }}>
+          Loading place data...
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="page-content">
+        <div className="default-container with-border" style={{ textAlign: "center" }}>
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>{loadError}</p>
+          <button type="button" className="btn btn-secondary" onClick={handleBack}>
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
-        <h2 className="card-title">New Place</h2>
+        <div className="card-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0 }}>Edit Place</h2>
+          <button type="button" className="btn btn-secondary" onClick={handleBack}>
+            Back
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="stack">
           <div className="form-row">
@@ -271,7 +346,14 @@ export default function NewPlace() {
                   onChange={(e) => onPlaceNameChange(e.target.value)}
                   autoComplete="off"
                 />
-                {suggestionsLoading && <span className="info-text" style={{ position: "absolute", top: "50%", right: "0.5rem", transform: "translateY(-50%)", fontSize: "0.75rem" }}>Buscando…</span>}
+                {suggestionsLoading && (
+                  <span
+                    className="info-text"
+                    style={{ position: "absolute", top: "50%", right: "0.5rem", transform: "translateY(-50%)", fontSize: "0.75rem" }}
+                  >
+                    Buscando…
+                  </span>
+                )}
                 {suggestions.length > 0 && (
                   <ul
                     className="saved-list"
@@ -321,7 +403,12 @@ export default function NewPlace() {
                   value={coords.lat}
                   onChange={(e) => updateCoords("lat", e.target.value)}
                   onBlur={applyCoords}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCoords(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoords();
+                    }
+                  }}
                 />
                 <input
                   type="text"
@@ -329,34 +416,38 @@ export default function NewPlace() {
                   value={coords.lng}
                   onChange={(e) => updateCoords("lng", e.target.value)}
                   onBlur={applyCoords}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyCoords(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoords();
+                    }
+                  }}
                 />
               </div>
               {fieldErrors.coords && <p className="error-text" style={{ marginTop: "0.4rem" }}>{fieldErrors.coords}</p>}
             </div>
           )}
 
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-            width: "100%"
-          }}>
-            <div style={{
+          <div
+            style={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "0.6rem",
-              width: "100%"
-            }}>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-                style={buttonStyle}
-              >
+              gap: "0.5rem",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.6rem",
+                width: "100%",
+              }}
+            >
+              <button type="submit" className="btn btn-primary" disabled={saving} style={buttonStyle}>
                 <span className="btn-content" style={BUTTON_CONTENT_STYLE}>
                   <svg className="add-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="currentColor" d={buttonIconPath} />
