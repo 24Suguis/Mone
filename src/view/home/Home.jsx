@@ -1,13 +1,13 @@
 import React from 'react'
 
-import { NavBar } from './NavBar'
+import { NavBar } from './HomeNavBar'
 import { Portada } from './Portada'
 import { Aboutus } from './Aboutus'
 import { Services } from './Services'
 import { Contact } from './Contact'
 
 import '../../../styles/home.css'
-import {Footer} from './Footer'
+import { Footer } from './HomeFooter'
 export const Home = () => {
   return (
     <div className='home_principal'>

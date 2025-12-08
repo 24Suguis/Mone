@@ -122,6 +122,7 @@ export default function Stepper({
               )}
               <button
                 onClick={isLastStep ? handleComplete : handleNext}
+                style={{color: 'hsla(78, 30%, 85%, 1.00)'}}
                 className="duration-350 flex items-center justify-center rounded-full bg-green-500 py-1.5 px-3.5 font-medium tracking-tight text-white transition hover:bg-green-600 active:bg-green-700"
                 {...nextButtonProps}
               >
@@ -214,7 +215,7 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }
     >
       <motion.div
         variants={{
-          inactive: { scale: 1, backgroundColor: '#222', color: '#a3a3a3' },
+          inactive: { scale: 1, backgroundColor: '#222', color: '#CCD5B9' },
           active: { scale: 1, backgroundColor: '#585233', color: '#585233' },
           complete: { scale: 1, backgroundColor: '#597D35', color: '#3b82f6' }
         }}

@@ -104,6 +104,13 @@ body {
 
 .home_principal {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* push the footer section to the bottom of the page */
+.home_principal > section#footer {
+    margin-top: auto;
 }
 
 .eslogan {
@@ -329,8 +336,7 @@ body {
 .cards_servicios h3 {
     font-size: 32px;
     font-weight: bold;
-    color: #ddb187;
-    /*cambiar color*/
+    color: #E0E6D5;
 }
 
 
@@ -463,7 +469,10 @@ body {
     align-items: center;
     justify-items: center;
 }
-
+#contact h2{
+    color: #585233;
+    font-weight: 700;
+}
 
 
 .contact_principal {

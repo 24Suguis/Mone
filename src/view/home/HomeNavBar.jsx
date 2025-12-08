@@ -8,7 +8,8 @@ export const NavBar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <span className="text-xl font-bold">📍MONE</span>
+            <img src="../../../resources/logoMone.png" alt="Logo" className="h-8 w-8 mr-2" />
+            <span className="text-xl font-bold">MONE</span>
           </div>
 
           {/* Menu  */}
