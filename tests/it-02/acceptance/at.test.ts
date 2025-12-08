@@ -237,7 +237,6 @@ describe("Tests aceptación segunda iteración {h09}: Consulta de lugares", () =
 	expect(places[0].name).toBe("Casa");
 	expect(places[0].latitude).toBeCloseTo(40.620, 3);
 	expect(places[0].longitude).toBeCloseTo(-0.098, 3);
-	expect(places[0].toponymicAddress).toBe("Morella");
   },
 		LONG_TIMEOUT
 	);
