@@ -3,7 +3,8 @@ import { PlaceService } from "../../../src/domain/service/PlaceService";
 import { UserService } from "../../../src/domain/service/UserService";
 import { UserSession } from "../../../src/domain/session/UserSession";
 import { collection, deleteDoc, getDocs } from "firebase/firestore";
-import { db } from "../../../src/core/config/firebaseConfig";
+import { db, auth } from "../../../src/core/config/firebaseConfig";
+import { Place } from "../../../src/domain/model/Place";
 
 const LONG_TIMEOUT = 20000;
 const BASE_USER = {
@@ -64,6 +65,9 @@ const userPlacesCollection = () => collection(db, "users", requireUserId(), "pla
 
 const cleanupUserPlaces = async () => {
 	if (!testUserId) return;
+	// Si no hay usuario autenticado en Firebase (por ejemplo, tras logOut en H09-E3),
+	// evitamos disparar operaciones que Firebase rechazará con "Missing or insufficient permissions".
+	if (!auth?.currentUser) return;
 	const snapshot = await getDocs(userPlacesCollection());
 	await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
 };
@@ -220,6 +224,103 @@ describe("Tests aceptación segunda iteración {h08}: Gestión de lugares guarda
 				fetchSpy.mockRestore();
 			}
 		},
+		LONG_TIMEOUT
+	);
+});
+
+describe("Tests aceptación segunda iteración {h09}: Consulta de lugares", () => {
+  test("H09-E1 - Válido: consultar los lugares exitosamente con lugares guardados", async () => {
+	await placeService.savePlace({
+				name: "Casa",
+				latitude: 40.620,
+				longitude: -0.098,
+			});
+	const places = await placeService.getSavedPlaces();
+	expect(places.length).toBe(1);
+	expect(places[0].name).toBe("Casa");
+	expect(places[0].latitude).toBeCloseTo(40.620, 3);
+	expect(places[0].longitude).toBeCloseTo(-0.098, 3);
+  },
+		LONG_TIMEOUT
+	);
+  test("H09-E2 - Válido: consultar los lugares exitosamente sin lugares guardados", async () => {
+	const places=await placeService.getSavedPlaces();
+	expect(places.length).toBe(0);
+  },
+		LONG_TIMEOUT
+	);
+
+  test("H09-E3 - Inválido: consultar lugares con la sesión cerrada", async () => {
+	await userService.logOut();
+	await expect(placeService.getSavedPlaces())
+	  .rejects.toThrow("SessionNotFoundException");
+  },
+		LONG_TIMEOUT
+	);
+});
+
+describe("Tests aceptación segunda iteración {h10}: Eliminación de lugares", () => {
+  test("H010-E1 - Válido: Eliminar el lugar con nombre Casa", async () => {
+	await placeService.savePlace({
+				name: "Casa",
+				latitude: 40.620,
+				longitude: -0.098,
+			});
+	await placeService.deletePlaceByName("Casa");
+	const places = await placeService.getSavedPlaces();
+	await expect(places.length).toBe(0);
+  },
+		LONG_TIMEOUT
+	);
+
+  test("H10-E2 - Inválido: Eliminar el lugar no guardado con nombre Caza", async () => {
+	await placeService.savePlace({
+				name: "Casa",
+				latitude: 40.620,
+				longitude: -0.098,
+			});
+	
+	await expect(placeService.deletePlaceByName("Caza"))
+	  .rejects.toThrow("PlaceNotDeletedException");
+	const places=await placeService.getSavedPlaces;
+	await expect(places.length).toBe(1);
+  },
+		LONG_TIMEOUT
+	);
+});
+
+describe("Tests aceptación segunda iteración {h11}: Edición de lugares", () => {
+  test("H11-E1 - Válido: Cambiar el nombre del lugar con topónimo Morella a Ma casa", async () => {
+	const fetchSpy = mockORSResponse("Morella", 40.62, -0.098);
+		try {
+			const [suggestion] = await placeService.suggestToponyms("Morella", 1);
+
+			await placeService.savePlace({
+				name: suggestion.label,
+				latitude: suggestion.latitude,
+				longitude: suggestion.longitude,
+				toponymicAddress: suggestion.label,
+			});
+
+			await placeService.editPlaceByToponym("Morella", "Ma casa");
+
+			const places =await placeService.getSavedPlaces();
+			expect(places[0].name).toBe("Ma casa");
+			
+		} finally {
+			fetchSpy.mockRestore();
+		}
+
+  },
+		LONG_TIMEOUT
+	);
+
+  test("H11-E3 - Inválido: Cambiar el nombre del lugar no guardado con topónimo Moncofa a Ma casa", async () => {
+		
+	await expect(placeService.editPlaceByToponym("Moncofa", "Ma casa"))
+	  .rejects.toThrow("PlaceNotDeletedException");
+
+  },
 		LONG_TIMEOUT
 	);
 });

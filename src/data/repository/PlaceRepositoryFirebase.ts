@@ -2,21 +2,32 @@ import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, se
 import { db } from "../../core/config/firebaseConfig.js";
 import type { PlaceRepository } from "../../domain/repository/PlaceRepository.js";
 import { Place } from "../../domain/model/Place.js";
+import { handleAuthError } from "../../core/utils/exceptions.js";
+import type { FirebaseError } from "firebase/app";
 
 const collectionForUser = (userId: string) => {
 	if (!userId) throw new Error("User id is required to access places");
 	return collection(db, "users", userId, "places");
 };
 
-const normalizeDoc = (snapshot: any): Place => {
+const normalizeDoc = (snapshot: any): { id: string; name: string; latitude: number; longitude: number; toponymicAddress?: string; description?: string } => {
 	const data = snapshot.data() || {};
-	return new Place(
+	const place = new Place(
 		data.name ?? "",
 		Number(data.latitude) || 0,
 		Number(data.longitude) || 0,
 		data.toponymicAddress ?? undefined,
 		data.description ?? undefined
 	);
+
+	return {
+		id: snapshot.id,
+		name: place.name,
+		latitude: place.latitude,
+		longitude: place.longitude,
+		toponymicAddress: place.toponymicAddress,
+		description: place.description,
+	};
 };
 
 const dropUndefined = (payload: Record<string, unknown>) =>
@@ -34,14 +45,18 @@ const serializePlace = (place: Place | Partial<Place>) => {
 };
 
 export class PlaceRepositoryFirebase implements PlaceRepository {
-	async getPlacesByUser(userId: string): Promise<Place[]> {
-		const placesRef = collectionForUser(userId);
+	async getPlacesByUser(userId: string): Promise<any[]> {
+		console.log("dentro getPlacesByUser");
+		try{const placesRef = collectionForUser(userId);
 		const q = query(placesRef, orderBy("createdAt", "desc"));
 		const snapshot = await getDocs(q);
-		return snapshot.docs.map((docSnap) => normalizeDoc(docSnap));
+		return snapshot.docs.map((docSnap) => normalizeDoc(docSnap));}
+		catch(error){
+			handleAuthError(error as FirebaseError);
+		}
 	}
 
-	async getPlaceById(userId: string, placeId: string): Promise<Place | null> {
+	async getPlaceById(userId: string, placeId: string): Promise<any | null> {
 		if (!placeId) return null;
 		const docRef = doc(collectionForUser(userId), placeId);
 		const snapshot = await getDoc(docRef);
