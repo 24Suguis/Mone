@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import '../styles/styles.css'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import '../styles/home.css'
+import { BrowserRouter, Route, Routes, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import SignUp from './view/User/SignUp'
 import LogIn from './view/User/LogIn'
 import AccountManagement from './view/User/AccountManagement'
@@ -10,26 +10,76 @@ import NewPlace from './view/Place/NewPlace'
 import ListPlaces from './view/Place/ListPlaces'
 import EditPlace from './view/Place/EditPlace'
 import VehiclesPage from './view/vehicle/VehiclesPage'
+import {Home} from './view/home/Home'
+import { useAuth } from './core/context/AuthContext';
+import AppNav from './view/components/AppNav';
+import AppFooter from './view/components/AppFooter';
+import { useEffect } from 'react';
+
 function App() {
-  const [count, setCount] = useState(0)
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
 
   return (
     <BrowserRouter>
+      <div className="app-root">
       <Routes>
-        <Route path="/" element={<h1>Hola Mone</h1>} />
+        {/* Ruta pública */}
+        <Route path="/" element={<Home />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/login" element={<LogIn />} />
-        <Route path="/account" element={<AccountManagement />} />
-        <Route path="/email-update-confirmation" element={<h1>Email Update Confirmation Page</h1>} />
         <Route path="/recover-password" element={<RecuperarContraseña />} />
-        <Route path="/logout" element={<LogOut />} />
-        <Route path="/newplace" element={<NewPlace />} />
-        <Route path="/listplaces" element={<ListPlaces />} />
-        <Route path="/editplace/:placeId" element={<EditPlace />} />
-        <Route path="/vehiclespage"  element={<VehiclesPage />} />
+        <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
+
+        {/* Rutas protegidas */}
+        <Route element={<RequireAuth />}>
+          <Route element={<PrivateLayout />}>
+            <Route path="/account" element={<AccountManagement />} />
+          </Route>
+        </Route>
+
+        {/* Fallback para rutas no encontradas */}
+        <Route path="*" element={<NotFoundRedirect />} />
       </Routes>
+      </div>
     </BrowserRouter>
   )
 }
+
+const RequireAuth = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  if (loading) return null;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  return <Outlet />;
+};
+
+
+
+const PrivateLayout = () => (
+  <>
+    <AppNav /> 
+    <main className="app-main"><Outlet /></main>
+    <AppFooter/>
+  </>
+);
+
+const NotFoundRedirect = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    try {
+      if (window.history && window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate('/', { replace: true });
+      }
+    } catch (e) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
+  return null;
+};
 
 export default App
