@@ -127,6 +127,9 @@ export const handleAuthError = (error: unknown): never => {
   if (normalized.includes("auth/credential-already-in-use") || normalized.includes("credential-already-in-use")) {
     throw new Error("CredentialAlreadyInUse");
   }
+  if (normalized.includes("permission-denied") || normalized.includes("insufficient permissions")) {
+    throw new Error("SessionNotFoundException");
+  }
 
   // Último recurso: lanzar el mensaje original o un identificador genérico
   const fallback = message || "AuthError";

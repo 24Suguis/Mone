@@ -112,8 +112,14 @@ export class UserService {
     try {
       await this.authProvider.logOut();
     } catch (Error) {
+      try {
+        UserSession.clear();
+      } catch { /* ignore */ }
       throw handleAuthError(Error as FirebaseError);
     }
+    try {
+      UserSession.clear();
+    } catch { /* ignore */ }
   }
 
 
@@ -413,5 +419,14 @@ export class UserService {
       throw new Error("InvalidDataException");
     }
     return this.userRepository.getUserByEmail(email);
+  }
+
+  getCurrentUserId(): string | null {
+    try {
+      const session = UserSession.loadFromCache();
+      return session?.userId ?? null;
+    } catch {
+      return null;
+    }
   }
 }

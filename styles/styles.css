@@ -483,7 +483,7 @@ textarea {
 .map-panel {
   flex: 1 1 auto;
   min-height: 550px;                 
-  height: calc(50vh - 90px);        
+  height: calc(100vh - 90px);        
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1080,6 +1080,53 @@ textarea {
     background-color: #c91a1a;
 }
 
+.my-cancel-btn {
+  background-color: #985757;  
+  color: white;
+  border-radius: 8px;
+}
+.my-cancel-btn:hover {
+  background-color: #6e3b3b;  
+  color: white;
+  transition: 1s;
+}
+
+.my-back-btn {
+  background-color: #706d5f;
+  color: white;
+  border-radius: 8px;
+}
+.my-back-btn:hover {
+  background-color: #5e5323;
+  color: #f0fdfa;
+  transition: 0.6s ease;
+}
+
+.my-confirm-btn {
+  background-color: var(--color-primary);  
+  color: white;
+  border-radius: 8px;
+}
+.my-confirm-btn:hover {
+  background-color: #423e2a;  
+  color: white;
+  transition: 1s;
+}
+
+.my-input{
+  border: 3px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px;
+  background-color:var(--color-secondary);
+}
+
+.swal2-validation-message {
+  background: var(--color-background);
+  border: 0px solid #ff4d4d;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #585233;
+}
 .modal-backdrop {
   position: fixed;
   top: 0;

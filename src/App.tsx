@@ -6,6 +6,10 @@ import LogIn from './view/User/LogIn'
 import AccountManagement from './view/User/AccountManagement'
 import RecuperarContraseña from './view/User/RecuperarContraseña'
 import LogOut from './view/User/LogOut'
+import NewPlace from './view/Place/NewPlace'
+import ListPlaces from './view/Place/ListPlaces'
+import EditPlace from './view/Place/EditPlace'
+import VehiclesPage from './view/vehicle/VehiclesPage'
 import {Home} from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
 import AppNav from './view/components/AppNav';
