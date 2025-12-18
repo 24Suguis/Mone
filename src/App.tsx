@@ -10,10 +10,12 @@ import NewPlace from './view/Place/NewPlace'
 import ListPlaces from './view/Place/ListPlaces'
 import EditPlace from './view/Place/EditPlace'
 import VehiclesPage from './view/vehicle/VehiclesPage'
+import SearchRoute from './view/Route/Searchroute'
+import RouteDetails from './view/Route/RouteDetails'
 import {Home} from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
 import AppNav from './view/components/AppNav';
-import AppFooter from './view/components/AppFooter';
+import AppFooter from "./view/components/AppFooter";
 import { useEffect } from 'react';
 
 function App() {
@@ -35,6 +37,14 @@ function App() {
         <Route element={<RequireAuth />}>
           <Route element={<PrivateLayout />}>
             <Route path="/account" element={<AccountManagement />} />
+            <Route path="/logout" element={<LogOut />} />
+            <Route path="/places/new" element={<NewPlace />} />
+            <Route path="/places/edit/:placeId" element={<EditPlace />} />
+            <Route path="/places" element={<ListPlaces />} />
+            <Route path="/mobilitymethods" element={<VehiclesPage />} />
+            <Route path="/searchroute" element={<SearchRoute />} />
+            <Route path="/routedetails" element={<RouteDetails />} />
+            <Route path="/listplaces" element={<ListPlaces />} />
           </Route>
         </Route>
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import EditDeleteActions from "./EditDeleteActions";
+import EditDeleteActions from "../components/EditDeleteActions.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import Swal from "sweetalert2";
 import { isValidVehicleName } from "../../core/utils/validators";

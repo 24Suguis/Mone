@@ -5,8 +5,8 @@ export type FuelType = 'gasoline' | 'diesel' | 'electric';
 
 // Interfaz para representar la cantidad y la unidad del consumo
 export interface Consumption {
-    amount: number;     // valor numérico
-  unit: 'L/100km' | 'kWh/100km' | 'kcal/min'; // unidad de medida
+  amount: number;     // valor numérico
+  unit: 'l/100km' | 'kwh/100km' | 'kcal/min'; // unidad de medida
 }
 
 

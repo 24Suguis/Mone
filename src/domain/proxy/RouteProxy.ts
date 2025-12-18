@@ -1,0 +1,25 @@
+import { type IRouteProvider } from "../model/IRouteProvider";
+import { Route } from "../model/Route";
+export class RouteProxy implements IRouteProvider {
+  private cache = new Map<string, Route>();
+
+  constructor(private realProvider: IRouteProvider) {}
+
+  private key(origin: string, dest: string, mob: string, type: string) {
+    return `${origin}-${dest}-${mob}-${type}`;
+  }
+
+  async getRoute(origin: string, dest: string, mob: string, type: string): Promise<Route> {
+    const k = this.key(origin, dest, mob, type);
+
+    if (this.cache.has(k)) {
+      console.log("📦 Ruta obtenida desde caché");
+      return this.cache.get(k)!;
+    }
+
+    const route = await this.realProvider.getRoute(origin, dest, mob, type);
+    this.cache.set(k, route);
+
+    return route;
+  }
+}
