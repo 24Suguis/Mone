@@ -18,6 +18,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
       origin: payload.origin,
       destination: payload.destination,
       mobilityType: payload.mobilityType,
+      mobilityMethod: payload.mobilityMethod,
       routeType: payload.routeType,
       createdAt: serverTimestamp(),
     });
@@ -35,6 +36,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
         origin: data.origin,
         destination: data.destination,
         mobilityType: data.mobilityType,
+        mobilityMethod: data.mobilityMethod,
         routeType: data.routeType,
         createdAt: data.createdAt?.toDate?.() ?? new Date(),
       };

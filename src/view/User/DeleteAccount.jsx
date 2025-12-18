@@ -19,21 +19,35 @@ export const DeleteAccount = () => {
   };
 
   return (
-    <div className="center" role="main" style={{height: "100%", width: "100%"}}>
-      <button
-            type="button"
-            onClick={onDeleteAccount}
-            style={{
-              background: "#ea0303",
-              border: "2px solid #583533",
-              color: "white",
-              padding: "5px 10px",
-            }}
-          >
-            Delete Account
-          </button>
-        
-    </div>
+      <div style={{ maxWidth: "1000px", margin: "1rem auto", padding: "1rem", boxSizing: "border-box" }}>
+        <div className="settings-row">
+          <div className="settings-title">
+            <h2>Delete Account</h2>
+          </div>
+            
+          <div className="settings-form">
+            <div className=" settings-container " style={{ padding: "1rem" }}>
+            <button
+              className="btn"
+              type="button"
+              onClick={onDeleteAccount}
+              style={{
+                background: "rgba(234, 3, 3, 0.70)",
+                border: "2px solid #583533",
+                color: "white",
+                padding: "5px 10px",
+                width: "230px",
+                fontSize: "16px",
+                cursor: "pointer",
+                height: "45px",
+              }}
+            >
+              Delete Account
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>  
   );
 };
 

@@ -56,10 +56,7 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
         return snapshot.docs.map((d) => {
             const data = d.data() as VehicleDoc;
             const normalizedFuel = normalizeFuelType(data.fuelType);
-        
             const type = data.type;
-            console.log("Vehicle type from Firestore:", type);
-            console.log("Vehicle data from Firestore:", data);
 
             switch (type.toLowerCase()) {
                 case "bike":

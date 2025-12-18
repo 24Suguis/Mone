@@ -388,11 +388,20 @@ textarea {
   text-align: left;
 }
 
+.account-save-btn {
+  width: 35%;
+  box-sizing: border-box;
+  min-width: 120px;
+}
+
+
 @media (max-width: 760px) {
   .settings-row {
     flex-direction: column;
     gap: 0.25rem;       
     padding: 0.2rem;    
+    align-items: center;
+    display: block;
   }
 
   /* título más compacto */
@@ -415,6 +424,43 @@ textarea {
     margin: 0 0 0.3rem 0;
     font-size: 0.88rem;
     text-align: center;
+  }
+
+  .settings-title,
+  .settings-form {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .settings-title {
+    text-align: center;
+    padding: 0.5rem 0;
+  }
+
+  .settings-title h2 {
+    margin: 0;
+    text-align: center;
+  }
+
+  .settings-form {
+    display: block; 
+    padding: 0 0.6rem;
+  }
+
+  .settings-form .settings-container,
+  .settings-form .default-container {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: 520px; /* keep a reasonable max width when centered */
+  }
+  /* centrar el contenedor dentro del formulario sin usar flex */
+  .settings-form .settings-container {
+    margin: 0 auto;
+  }
+  .account-save-btn {
+    width: 150px;
   }
 }
 
@@ -502,6 +548,21 @@ textarea {
     gap: 0.6rem;
     padding: 0.8rem;
     align-items: stretch; /* importante: que los hijos ocupen todo el ancho/alto disponible */
+  }
+  
+  /* ajustar altura mínima del mapa en móviles para evitar huecos gigantes */
+  .map-panel {
+    min-height: 320px !important;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  
+  .map-panel .leaflet-container,
+  .map-panel .map-canvas {
+    height: 320px !important;
+    min-height: 320px !important;
+    visibility: visible !important;
   }
 
   .place-card {
@@ -1197,4 +1258,18 @@ textarea {
   .modal-actions .btn {
     width: 100%;
   }
+}
+
+/* Small horizontal divider used across pages (Settings etc.) */
+.divider {
+  
+  border: 0;
+  height: 1px;
+  width: 71%;
+  background: var(--border-color);
+  margin: auto;
+}
+
+.divider[role="separator"] {
+  outline: none;
 }

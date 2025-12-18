@@ -203,7 +203,7 @@ export default function AccountManagement() {
                   )}
 
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.6rem" }}>
-                    <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: "35%" }}>
+                    <button type="submit" disabled={loading} className="btn btn-primary account-save-btn">
                       {loading ? "Updating..." : "Save Changes"}
                     </button>
                   </div>

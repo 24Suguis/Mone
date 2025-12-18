@@ -4,6 +4,7 @@ export interface RouteSavedDTO {
 	origin: string;
 	destination: string;
 	mobilityType: string;
+	mobilityMethod: string;
 	routeType: string;
 	createdAt?: Date;
 }
