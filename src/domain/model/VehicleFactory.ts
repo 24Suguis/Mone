@@ -35,6 +35,7 @@ export class VehicleFactory {
                     throw new Error('FuelCar solo puede ser gasoline o diesel');
                 }
                 if (consumption < 0) throw new Error('Consumo inválido para coche de combustible');
+                console.log("Creando fuelcar con fueltype:", fuelType);
                 return new FuelCar(name, fuelType, consumption);
 
             default:

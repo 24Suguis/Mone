@@ -13,11 +13,12 @@ import VehiclesPage from './view/vehicle/VehiclesPage'
 import SearchRoute from './view/Route/Searchroute'
 import RouteDetails from './view/Route/RouteDetails'
 import Settings from './view/User/Settings'
-import {Home} from './view/home/Home'
+import { Home } from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
 import AppNav from './view/components/AppNav';
 import AppFooter from "./view/components/AppFooter";
 import { useEffect } from 'react';
+import InfoRoute from './view/InfoRoute';
 
 function App() {
   const { user, loading } = useAuth();
@@ -27,37 +28,37 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-root">
-      <Routes>
-        {/* Ruta pública */}
-        <Route path="/" element={<Home />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/recover-password" element={<RecuperarContraseña />} />
-        <Route path="/login" element={<LogIn />} />
-      
-       { /* Me da problemas, siempre redirigia 
-                <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
+        <Routes>
+          {/* Ruta pública */}
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/recover-password" element={<RecuperarContraseña />} />
+          <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
 
-        */}
 
-        {/* Rutas protegidas */}
-        <Route element={<RequireAuth />}>
-          <Route element={<PrivateLayout />}>
-            <Route path="/account" element={<AccountManagement />} />
-            <Route path="/logout" element={<LogOut />} />
-            <Route path="/places/new" element={<NewPlace />} />
-            <Route path="/places/edit/:placeId" element={<EditPlace />} />
-            <Route path="/places" element={<ListPlaces />} />
-            <Route path="/mobilitymethods" element={<VehiclesPage />} />
-            <Route path="/searchroute" element={<SearchRoute />} />
-            <Route path="/routedetails" element={<RouteDetails />} />
-            <Route path="/listplaces" element={<ListPlaces />} />
-            <Route path="/settings" element={<Settings />} />
+
+          {/* Rutas protegidas */}
+          <Route element={<RequireAuth />}>
+            <Route element={<PrivateLayout />}>
+              <Route path="/account" element={<AccountManagement />} />
+              <Route path="/logout" element={<LogOut />} />
+              <Route path="/places/new" element={<NewPlace />} />
+              <Route path="/places/edit/:placeId" element={<EditPlace />} />
+              <Route path="/places" element={<ListPlaces />} />
+              <Route path="/mobilitymethods" element={<VehiclesPage />} />
+              <Route path="/searchroute" element={<SearchRoute />} />
+              <Route path="/routedetails" element={<RouteDetails />} />
+              <Route path="/listplaces" element={<ListPlaces />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/info" element={<InfoRoute />}></Route>
+              <Route path="/vehicles" element={<VehiclesPage />}></Route>
+
+            </Route>
           </Route>
-        </Route>
 
-        {/* Fallback para rutas no encontradas */}
-        <Route path="*" element={<NotFoundRedirect />} />
-      </Routes>
+          {/* Fallback para rutas no encontradas */}
+          <Route path="*" element={<NotFoundRedirect />} />
+        </Routes>
       </div>
     </BrowserRouter>
   )
@@ -77,9 +78,9 @@ const RequireAuth = () => {
 
 const PrivateLayout = () => (
   <>
-    <AppNav /> 
+    <AppNav />
     <main className="app-main"><Outlet /></main>
-    <AppFooter/>
+    <AppFooter />
   </>
 );
 
