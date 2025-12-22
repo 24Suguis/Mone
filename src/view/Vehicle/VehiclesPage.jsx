@@ -304,6 +304,7 @@ export default function VehiclesPage() {
       }
     }
 
+    console.log("Final form state:", formState);
     await addVehicle(
       formState.type,
       formState.name,
