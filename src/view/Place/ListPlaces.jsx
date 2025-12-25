@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
+import Swal from "sweetalert2";
 
 const PLUS_ICON_PATH = "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
 
@@ -71,12 +72,37 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
   const handleDeletePlace = async (placeId) => {
     if (!placeId) return;
     const place = findPlace(placeId);
-    const confirmed = window.confirm(`Do you want to remove "${place?.name || "Unnamed place"}"?`);
-    if (!confirmed) return;
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `You are about to delete "${place?.name || "Unnamed place"}". This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      cancelButtonText: "Cancel",
+      confirmButtonText: "Yes, delete",
+      background: "#E0E6D5",
+      color: "#585233",
+      customClass: {
+        cancelButton: "my-cancel-btn",
+        confirmButton: "my-confirm-btn",
+      },
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
     setDeletingId(placeId);
     try {
       await placeViewmodel.deletePlace(placeId);
       setPlaces((prev) => prev.filter((item) => item.id !== placeId));
+      await Swal.fire({
+        title: "Deleted!",
+        text: `\"${place?.name || "Unnamed place"}\" has been removed successfully.`,
+        icon: "success",
+        background: "#E0E6D5",
+        color: "#585233",
+        customClass: { confirmButton: "my-confirm-btn" },
+      });
     } catch (err) {
       setError(err?.message || "Unable to delete place.");
     } finally {

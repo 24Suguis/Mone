@@ -28,12 +28,12 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app-root">
-        <Routes>
-          {/* Ruta pública */}
-          <Route path="/" element={<Home />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/recover-password" element={<RecuperarContraseña />} />
-          <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
+      <Routes>
+        {/* Ruta pública */}
+        <Route path="/" element={<Home />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/recover-password" element={<RecuperarContraseña />} />
+        <Route path="/login" element={user ? <Navigate to="/searchroute" replace /> : <LogIn />} />
 
 
 

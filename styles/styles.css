@@ -1182,11 +1182,13 @@ textarea {
 }
 
 .swal2-validation-message {
-  background: var(--color-background);
-  border: 0px solid #ff4d4d;
+  /* Use transparent so the validation message shares the modal background
+     (we set modal background per-Swal.fire). Also inherit text color. */
+  background: transparent !important;
+  border: 0 !important;
   padding: 6px 10px;
   border-radius: 6px;
-  color: #585233;
+  color: inherit !important;
 }
 .modal-backdrop {
   position: fixed;
