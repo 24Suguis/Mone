@@ -50,7 +50,6 @@ function App() {
             <Route path="/mobilitymethods" element={<VehiclesPage />} />
             <Route path="/searchroute" element={<SearchRoute />} />
             <Route path="/routedetails" element={<RouteDetails />} />
-            <Route path="/listplaces" element={<ListPlaces />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>

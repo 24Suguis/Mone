@@ -52,7 +52,7 @@ export default function EditPlace() {
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      navigate("/listplaces");
+      navigate("/places");
     }
   }, [navigate]);
 

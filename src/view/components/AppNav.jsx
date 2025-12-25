@@ -7,8 +7,8 @@ export const AppNav = () => {
 
   const navItems = [
     { label: "Explore", href: "/searchroute" },
-    { label: "My routes", href: "/myroutes" },
-    { label: "My places", href: "/myplaces" },
+    { label: "My routes", href: "/routes" },
+    { label: "My places", href: "/places" },
   ];
 
   const profileItems = [
