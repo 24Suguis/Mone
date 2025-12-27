@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import Swal from "sweetalert2";
@@ -19,6 +19,15 @@ export default function VehiclesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", fuelType: "", consumption: "" });
+
+  // Estado inmediato y persistente del formulario (guardar contenido formulario para mostrar al hace back)
+  const wizardFormStateRef = useRef({
+    name: "",
+    type: "",
+    units: "",
+    fuelType: null,
+    consumption: null,
+  });
 
   //Preferencias de unidades, deberia de venir del viewmodel
   //seria = get....
@@ -61,14 +70,6 @@ export default function VehiclesPage() {
   };
 
   const handleAddClick = async () => {
-    const formState = {
-      name: "",
-      type: "", // "bicycle", "walking", "vehicle"
-      units: "",
-      fuelType: null,
-      consumption: null,
-    };
-
     const customClass = {
       confirmButton: "my-confirm-btn",
       cancelButton: "my-cancel-btn",
@@ -77,20 +78,20 @@ export default function VehiclesPage() {
       actions: "mone-swal-actions",
     };
 
-    // PASO 1: Nombre y Tipo
+    // PASO 1: Nombre y Tipo (walking, bicycle, vehicle)
     const step1 = await Swal.fire({
       title: "Add Mobility Method",
       html: `
         <div style="text-align: left;">
           <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Name</label>
-          <input type="text" id="vehicleName" class="my-input" style="width: 100%; box-sizing: border-box;" />
+          <input type="text" id="vehicleName" class="my-input" value="${wizardFormStateRef.current.name}" style="width: 100%; box-sizing: border-box;" />
           
           <label style="display: block; margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
           <select id="vehicleType" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px;">
-            <option value="" disabled selected>Select type</option>
-            <option value="bicycle">Bicycle</option>
-            <option value="walking">Walking</option>
-            <option value="vehicle">Vehicle</option>
+            <option value="" disabled ${!wizardFormStateRef.current.type ? "selected" : ""}>Select type</option>
+            <option value="bicycle" ${wizardFormStateRef.current.type === "bicycle" ? "selected" : ""}>Bicycle</option>
+            <option value="walking" ${wizardFormStateRef.current.type === "walking" ? "selected" : ""}>Walking</option>
+            <option value="vehicle" ${wizardFormStateRef.current.type === "vehicle" ? "selected" : ""}>Vehicle</option>
           </select>
         </div>
       `,
@@ -125,21 +126,26 @@ export default function VehiclesPage() {
       },
     });
 
-    if (!step1.value) return;
-    formState.name = step1.value.name;
-    formState.type = step1.value.type;
-
-    // PASO 2: Características específicas según tipo
-    let step2;
+    if (!step1.value) {
+      // Cancelar: limpiar formulario
     
-    if (formState.type === "bicycle") {
-      // Bicicleta: solo consumo (kcal/min)
-      step2 = await Swal.fire({
-        title: `Configure ${capitalize(formState.type)}`,
+      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+      return;
+    }
+
+    // Actualizar estado del asistente (sincrónico) y del componente
+    wizardFormStateRef.current.name = step1.value.name;
+    wizardFormStateRef.current.type = step1.value.type;
+    
+    // PASO 2: Características según tipo
+    if (step1.value.type === "bicycle" || step1.value.type === "walking") {
+      //console.log("Añadiendo bicicleta o caminata, con nombre:", wizardFormStateRef.current.name);
+      const step2 = await Swal.fire({
+        title: `Configure ${capitalize(step1.value.type)}`,
         html: `
           <div style="text-align: left;">
             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Average calories consumption (kcal/min)</label>
-            <input type="number" id="consumption" class="my-input" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
+            <input type="number" id="consumption" class="my-input" value="${wizardFormStateRef.current.consumption ?? ""}" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
           </div>
         `,
         background: "#CCD5B9",
@@ -163,63 +169,45 @@ export default function VehiclesPage() {
           return consumption;
         },
       });
-      
-      if (step2.isDenied) {
+
+      if (step2.isDenied) { //boton back
+        // Persistir consumo en wizard antes de volver al paso 1
+        const currentConsumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
+        wizardFormStateRef.current.consumption = currentConsumption || wizardFormStateRef.current.consumption;
         return handleAddClick();
       }
-      if (!step2.value) return;
-      formState.consumption = step2.value;
-    } else if (formState.type === "walking") {
-      // Caminar: solo consumo (kcal/min)
-      step2 = await Swal.fire({
-        title: `Configure ${capitalize(formState.type)}`,
-        html: `
-          <div style="text-align: left;">
-            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Average calories consumption (kcal/min)</label>
-            <input type="number" id="consumption" class="my-input" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
-          </div>
-        `,
-        background: "#CCD5B9",
-        color: "#585233",
-        customClass,
-        showDenyButton: true,
-        showCancelButton: true,
-        confirmButtonText: "Save",
-        denyButtonText: "Back",
-        cancelButtonText: "Cancel",
-        focusConfirm: false,
-        didOpen: () => {
-          Swal.getPopup().querySelector('#consumption')?.focus();
-        },
-        preConfirm: () => {
-          const consumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
-          if (!consumption || consumption <= 0) {
-            Swal.showValidationMessage("Consumption must be greater than 0");
-            return false;
-          }
-          return consumption;
-        },
-      });
-      
-      if (step2.isDenied) {
-        return handleAddClick();
+      if (!step2.value) {
+        // Cancelar: limpiar
+        wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+        return;
       }
-      if (!step2.value) return;
-      formState.consumption = step2.value;
-    } else if (formState.type === "vehicle") {
-      // Vehículo: loop para poder volver desde consumo
+
+      // Guardar
+      await addVehicle(
+        step1.value.type,
+        step1.value.name,
+        "",
+        null,
+        step2.value
+      );
+      
+      // Limpiar formulario tras éxito
+
+      wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+      
+    } else if (step1.value.type === "vehicle") {
+      // Loop para vehículos
       let vehicleConfigured = false;
-      
+
       while (!vehicleConfigured) {
-        // Elegir entre Electric, Gasoline, Diesel
         const fuelStep = await Swal.fire({
           title: "Vehicle Type",
           html: `
             <select id="fuelType" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px;">
-              <option value="" disabled selected>Select type</option>
-              <option value="electricCar">Electric</option>
-              <option value="gasoline">Gasoline</option>
-              <option value="diesel">Diesel</option>
+              <option value="" disabled ${!wizardFormStateRef.current.fuelType && wizardFormStateRef.current.type !== "electricCar" && wizardFormStateRef.current.type !== "fuelCar" ? "selected" : ""}>Select type</option>
+              <option value="electricCar" ${wizardFormStateRef.current.type === "electricCar" || wizardFormStateRef.current.fuelType === "electric" ? "selected" : ""}>Electric</option>
+              <option value="gasoline" ${wizardFormStateRef.current.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
+              <option value="diesel" ${wizardFormStateRef.current.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
             </select>
           `,
           background: "#CCD5B9",
@@ -242,132 +230,104 @@ export default function VehiclesPage() {
         });
 
         if (fuelStep.isDenied) {
-          return handleAddClick();
+          return handleAddClick(); // Volver al paso 1
         }
-        if (!fuelStep.value) return;
+        if (!fuelStep.value) {
+          // Cancelar: limpiar
+          wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+          return;
+        }
 
         const vehicleSubtype = fuelStep.value;
+        const isElectric = vehicleSubtype === "electricCar";
+        
+        // Persistir en wizard y sincronizar estado
+        wizardFormStateRef.current.fuelType = isElectric ? "electric" : vehicleSubtype;
+        wizardFormStateRef.current.type = isElectric ? "electricCar" : "fuelCar";
+       
 
-        if (vehicleSubtype === "electricCar") {
-          // Coche eléctrico: consumo (kWh/100km)
-          const consumptionStep = await Swal.fire({
-            title: "Electric Car Consumption",
-            html: `
-              <div style="text-align: left;">
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select unit</label>
-                <select id="units" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px; margin-bottom: 1rem;">
-                  <option value="kWh/100km">kWh/100km</option>
-                  <option value="km/kWh">km/kWh</option>
-                </select>
-                
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Consumption</label>
-                <input type="number" id="consumption" class="my-input" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
-              </div>
-            `,
-            background: "#CCD5B9",
-            color: "#585233",
-            customClass,
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: "Save",
-            denyButtonText: "Back",
-            cancelButtonText: "Cancel",
-            focusConfirm: false,
-            didOpen: () => {
-              Swal.getPopup().querySelector('#consumption')?.focus();
-            },
-            preConfirm: () => {
-              const units = Swal.getPopup().querySelector('#units')?.value;
-              const consumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
+        // Paso 3: Consumo
+        const consumptionStep = await Swal.fire({
+          title: isElectric ? "Electric Car Consumption" : `${capitalize(vehicleSubtype)} Car Consumption`,
+          html: `
+            <div style="text-align: left;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select unit</label>
+              <select id="units" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px; margin-bottom: 1rem;">
+                ${isElectric ? `
+                  <option value="kWh/100km" ${wizardFormStateRef.current.units === "kWh/100km" || !wizardFormStateRef.current.units ? "selected" : ""}>kWh/100km</option>
+                  <option value="km/kWh" ${wizardFormStateRef.current.units === "km/kWh" ? "selected" : ""}>km/kWh</option>
+                ` : `
+                  <option value="L/100km" ${wizardFormStateRef.current.units === "L/100km" || !wizardFormStateRef.current.units ? "selected" : ""}>L/100km</option>
+                  <option value="km/l" ${wizardFormStateRef.current.units === "km/l" ? "selected" : ""}>km/l</option>
+                `}
+              </select>
               
-              if (!units) {
-                Swal.showValidationMessage("Select unit");
-                return false;
-              }
-              if (!consumption || consumption <= 0) {
-                Swal.showValidationMessage("Consumption must be greater than 0");
-                return false;
-              }
-              return { units, consumption };
-            },
-          });
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Consumption</label>
+              <input type="number" id="consumption" class="my-input" value="${wizardFormStateRef.current.consumption ?? ""}" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
+            </div>
+          `,
+          background: "#CCD5B9",
+          color: "#585233",
+          customClass,
+          showDenyButton: true,
+          showCancelButton: true,
+          confirmButtonText: "Save",
+          denyButtonText: "Back",
+          cancelButtonText: "Cancel",
+          focusConfirm: false,
+          didOpen: () => {
+            Swal.getPopup().querySelector('#consumption')?.focus();
+          },
+          preConfirm: () => {
+            const units = Swal.getPopup().querySelector('#units')?.value;
+            const consumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
+            
+            if (!units) {
+              Swal.showValidationMessage("Select unit");
+              return false;
+            }
+            if (!consumption || consumption <= 0) {
+              Swal.showValidationMessage("Consumption must be greater than 0");
+              return false;
+            }
+            return { units, consumption };
+          },
+        });
 
-          if (consumptionStep.isDenied) {
-            continue; // Volver a selección de tipo de vehículo
-          }
-          if (!consumptionStep.value) return;
-
-          formState.units = consumptionStep.value.units;
-          formState.consumption = normalizeElectricConsumption(consumptionStep.value.consumption, consumptionStep.value.units);
-          formState.fuelType = "electric";
-          formState.type = "electricCar";
-          vehicleConfigured = true;
-        } else if (vehicleSubtype === "gasoline" || vehicleSubtype === "diesel") {
-          // Coche de gasolina/diésel: consumo
-          const consumptionStep = await Swal.fire({
-            title: `${vehicleSubtype.charAt(0).toUpperCase() + vehicleSubtype.slice(1)} Car Consumption`,
-            html: `
-              <div style="text-align: left;">
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select unit</label>
-                <select id="units" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px; margin-bottom: 1rem;">
-                  <option value="L/100km">L/100km</option>
-                  <option value="km/l">km/l</option>
-                </select>
-                
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Consumption</label>
-                <input type="number" id="consumption" class="my-input" min="0" step="0.1" style="width: 100%; box-sizing: border-box;" />
-              </div>
-            `,
-            background: "#CCD5B9",
-            color: "#585233",
-            customClass,
-            showDenyButton: true,
-            showCancelButton: true,
-            confirmButtonText: "Save",
-            denyButtonText: "Back",
-            cancelButtonText: "Cancel",
-            focusConfirm: false,
-            didOpen: () => {
-              Swal.getPopup().querySelector('#consumption')?.focus();
-            },
-            preConfirm: () => {
-              const units = Swal.getPopup().querySelector('#units')?.value;
-              const consumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
-              
-              if (!units) {
-                Swal.showValidationMessage("Select unit");
-                return false;
-              }
-              if (!consumption || consumption <= 0) {
-                Swal.showValidationMessage("Consumption must be greater than 0");
-                return false;
-              }
-              return { units, consumption };
-            },
-          });
-
-          if (consumptionStep.isDenied) {
-            continue; // Volver a selección de tipo de vehículo
-          }
-          if (!consumptionStep.value) return;
-
-          formState.units = consumptionStep.value.units;
-          formState.consumption = normalizeFuelConsumption(consumptionStep.value.consumption, consumptionStep.value.units);
-          formState.fuelType = vehicleSubtype;
-          formState.type = "fuelCar";
-          vehicleConfigured = true;
+        if (consumptionStep.isDenied) {
+          // Persistir en wizard antes de volver a fuel type
+          const currentUnits = Swal.getPopup().querySelector('#units')?.value;
+          const currentConsumption = parseFloat(Swal.getPopup().querySelector('#consumption')?.value || "0");
+          wizardFormStateRef.current.units = currentUnits || wizardFormStateRef.current.units;
+          wizardFormStateRef.current.consumption = currentConsumption || wizardFormStateRef.current.consumption;
+          continue; // Volver a selección de combustible
         }
+        if (!consumptionStep.value) {
+          // Cancelar: limpiar
+          wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+          return;
+        }
+
+        // Guardar
+        const normalizedConsumption = isElectric
+          ? normalizeElectricConsumption(consumptionStep.value.consumption, consumptionStep.value.units)
+          : normalizeFuelConsumption(consumptionStep.value.consumption, consumptionStep.value.units);
+
+        await addVehicle(
+          wizardFormStateRef.current.type,
+          wizardFormStateRef.current.name,
+          consumptionStep.value.units,
+          wizardFormStateRef.current.fuelType,
+          normalizedConsumption
+        );
+
+        // Limpiar formulario tras éxito
+        
+        wizardFormStateRef.current = { name: "", type: "", units: "", fuelType: null, consumption: null };
+        
+        vehicleConfigured = true;
       }
     }
-
-    // Guardar vehículo
-    await addVehicle(
-      formState.type,
-      formState.name,
-      formState.units || "",
-      formState.fuelType,
-      formState.consumption ?? undefined
-    );
   };
 
   const handleDelete = async (id) => {
