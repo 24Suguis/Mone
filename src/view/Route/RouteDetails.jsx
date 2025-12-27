@@ -218,7 +218,8 @@ export default function RouteDetails() {
   }, [vehicleOptions]);
 
   useEffect(() => {
-    if (selectedVehicleId && !vehicleLookup.has(selectedVehicleId)) {
+    const isDefaultSelection = typeof selectedVehicleId === "string" && selectedVehicleId.startsWith("default-");
+    if (selectedVehicleId && !isDefaultSelection && !vehicleLookup.has(selectedVehicleId)) {
       setSelectedVehicleId("");
     }
   }, [selectedVehicleId, vehicleLookup]);
@@ -233,7 +234,11 @@ export default function RouteDetails() {
       const normalized = normalizeMobilityKey(mode);
       return vehicleOptions
         .filter((option) => option.mobility === normalized)
-        .map((option) => ({ id: option.id, name: option.name }));
+        .map((option) => ({
+          id: option.id,
+          name: option.name,
+          meta: formatVehicleConsumptionDisplay(option.ref) ?? undefined,
+        }));
     },
     [vehicleOptions]
   );
@@ -272,27 +277,30 @@ export default function RouteDetails() {
 
   const handleMobilityChange = useCallback(
     (nextMobility) => {
+      if (nextMobility === selectedMobility) return;
       setSelectedMobility(nextMobility);
       setSelectedVehicleId("");
       triggerReroute(nextMobility, selectedRouteType, "");
     },
-    [selectedRouteType, triggerReroute]
+    [selectedMobility, selectedRouteType, triggerReroute]
   );
 
   const handleRouteTypeChange = useCallback(
     (nextRouteType) => {
+      if (nextRouteType === selectedRouteType) return;
       setSelectedRouteType(nextRouteType);
       triggerReroute(selectedMobility, nextRouteType, selectedVehicleId);
     },
-    [selectedMobility, selectedVehicleId, triggerReroute]
+    [selectedRouteType, selectedMobility, selectedVehicleId, triggerReroute]
   );
 
   const handleVehicleChange = useCallback(
     (nextVehicleId) => {
+      if (nextVehicleId === selectedVehicleId) return;
       setSelectedVehicleId(nextVehicleId);
       triggerReroute(selectedMobility, selectedRouteType, nextVehicleId);
     },
-    [selectedMobility, selectedRouteType, triggerReroute]
+    [selectedVehicleId, selectedMobility, selectedRouteType, triggerReroute]
   );
 
   const routePolyline = useMemo(() => {
@@ -332,9 +340,8 @@ export default function RouteDetails() {
   }, [routePolyline, fallbackMarkers]);
 
   const mapPolyline = useMemo(() => {
-    if (routePolyline.length >= 2) return routePolyline;
-    return markers.length === 2 ? markers : [];
-  }, [routePolyline, markers]);
+    return routePolyline.length >= 2 ? routePolyline : [];
+  }, [routePolyline]);
 
   const mapCenter = useMemo(() => {
     if (mapPolyline.length >= 2) {
@@ -449,7 +456,7 @@ export default function RouteDetails() {
           zoom={13}
           markers={markers}
           polyline={mapPolyline}
-          autoFitBounds={mapPolyline.length >= 2}
+          autoFitBounds={markers.length >= 2}
           highlightDestination
           style={{ minHeight: 360 }}
         />
