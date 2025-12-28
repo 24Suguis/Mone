@@ -197,6 +197,60 @@ select:focus {
   box-shadow: none; 
 }
 
+/* SweetAlert inputs aligned with app look */
+.swal2-popup .swal2-input.my-input,
+.swal2-popup .swal2-select.my-input,
+.swal2-popup .swal2-textarea.my-input {
+  font-family: var(--font-family-base);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background-color: var(--primary-with-transparency);
+  color: var(--color-primary);
+  ;
+  box-shadow: none;
+}
+
+.swal2-popup .swal2-input.my-input:focus,
+.swal2-popup .swal2-select.my-input:focus,
+.swal2-popup .swal2-textarea.my-input:focus {
+  outline: none;
+  border: 2px solid var(--color-primary);
+  box-shadow: none;
+}
+.swal2-input.my-input::placeholder{
+  color: rgba(88, 82, 51, 0.473);
+}
+
+.swal2-popup .my-select {
+  font-family: var(--font-family-base);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background-color: var(--primary-with-transparency);
+  color: var(--color-primary);
+  width: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23585233' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+  box-shadow: none;
+}
+
+.swal2-popup .my-select:focus {
+  outline: none;
+  border: 2px solid var(--color-primary);
+  box-shadow: none;
+}
+
+.swal2-popup .swal2-validation-message {
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
@@ -615,6 +669,101 @@ textarea {
 .form-row select#routeType,
 .form-row > select {
   margin-bottom: 1rem;
+}
+
+.select-field .select-trigger {
+  display: flex; /* block-level to span full width */
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 42px;
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+}
+
+.select-field .select-trigger[data-disabled="true"],
+.select-field .select-trigger[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.select-field .select-trigger:focus-visible {
+  outline: none;
+  border: 2px solid var(--color-primary);
+  box-shadow: none;
+}
+
+.select-field .select-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary);
+}
+
+.select-field .select-content {
+  background: var(--color-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  min-width: var(--radix-select-trigger-width);
+  width: var(--radix-select-trigger-width);
+  max-width: 100%;
+  z-index: 30;
+}
+
+.select-field .select-viewport {
+  padding: 0.25rem 0;
+  width: 100%;
+}
+
+.select-field .select-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+}
+
+.select-field .select-item[data-highlighted] {
+  outline: none;
+  background: var(--color-primary);
+  color: var(--color-secondary);
+}
+
+.select-field .select-item[data-state="checked"] {
+  background: var(--color-primary);
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.select-field .select-item[data-disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.select-field .select-indicator {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary);
+}
+
+.select-field .select-item[data-highlighted] .select-indicator,
+.select-field .select-item[data-state="checked"] .select-indicator {
+  color: var(--color-secondary);
 }
 /*MOVILITY BUTTONS*/
 .mobility-grid {
@@ -1182,11 +1331,13 @@ textarea {
 }
 
 .swal2-validation-message {
-  background: var(--color-background);
-  border: 0px solid #ff4d4d;
+  /* Use transparent so the validation message shares the modal background
+     (we set modal background per-Swal.fire). Also inherit text color. */
+  background: transparent !important;
+  border: 0 !important;
   padding: 6px 10px;
   border-radius: 6px;
-  color: #585233;
+  color: inherit !important;
 }
 
 /* SweetAlert2 button order: Cancel left, Confirm right */

@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
-import Swal from "sweetalert2";
+import CustomSwal from "../../core/utils/CustomSwal.js";
 import { isValidVehicleName } from "../../core/utils/validators";
 export default function VehiclesPage() {
   const {
@@ -125,6 +125,66 @@ export default function VehiclesPage() {
         return { name, type };
       },
     });
+    const formState = {
+      name: "",
+      type: "",
+      units: "",
+      fuelType: null,
+      consumption: null,
+    };
+
+    const buildTypeOptions = () => `
+      <option value="" disabled ${formState.type ? "" : "selected"}>Select vehicle type</option>
+      <option value="bike" ${formState.type === "bike" ? "selected" : ""}>Bike</option>
+      <option value="walking" ${formState.type === "walking" ? "selected" : ""}>Walking</option>
+      <option value="fuelCar" ${formState.type === "fuelCar" ? "selected" : ""}>Fuel Car</option>
+      <option value="electricCar" ${formState.type === "electricCar" ? "selected" : ""}>Electric Car</option>
+    `;
+
+    const buildFuelOptions = () => `
+      <option value="" disabled ${formState.fuelType ? "" : "selected"}>Select fuel type</option>
+      <option value="gasoline" ${formState.fuelType === "gasoline" ? "selected" : ""}>Gasoline</option>
+      <option value="diesel" ${formState.fuelType === "diesel" ? "selected" : ""}>Diesel</option>
+    `;
+
+    const buildUnitOptions = () => {
+      if (formState.type === "electricCar") {
+        return `
+          <option value="" disabled ${formState.units ? "" : "selected"}>Select measurement unit</option>
+          <option value="km/kWh" ${formState.units === "km/kWh" ? "selected" : ""}>km/kWh</option>
+          <option value="kWh/100km" ${formState.units === "kWh/100km" ? "selected" : ""}>kWh/100km</option>
+        `;
+      }
+
+      if (formState.type === "fuelCar") {
+        return `
+          <option value="" disabled ${formState.units ? "" : "selected"}>Select measurement unit</option>
+          <option value="km/l" ${formState.units === "km/l" ? "selected" : ""}>km/l</option>
+          <option value="L/100km" ${formState.units === "L/100km" ? "selected" : ""}>L/100km</option>
+        `;
+      }
+
+      return "";
+    };
+
+    let step = "name";
+
+    while (true) {
+      if (step === "name") {
+        const nameResult = await CustomSwal.fire({
+          title: "Vehicle name",
+          input: "text",
+          inputValue: formState.name,
+          inputPlaceholder: "Enter vehicle name",
+          showCancelButton: true,
+          confirmButtonText: "Next",
+          cancelButtonText: "Cancel",
+          inputValidator: (value) => {
+            if (!value) return "You need to write something!";
+            if (!isValidVehicleName(value)) return "Invalid name format, cannot contain special characters or letter 'ñ'.";
+            return null;
+          },
+        });
 
     if (!step1.value) {
       // Cancelar: limpiar formulario
@@ -169,6 +229,29 @@ export default function VehiclesPage() {
           return consumption;
         },
       });
+      if (step === "type") {
+        const typeResult = await CustomSwal.fire({
+          title: "Vehicle type",
+          html: `
+            <select id="vehicleType" class="my-select">
+              ${buildTypeOptions()}
+            </select>
+          `,
+          showCancelButton: true,
+          showDenyButton: true,
+          denyButtonText: "Back",
+          confirmButtonText: "Next",
+          focusConfirm: false,
+          preConfirm: () => {
+            const select = CustomSwal.getPopup().querySelector('#vehicleType');
+            const value = select?.value;
+            if (!value) {
+              CustomSwal.showValidationMessage("You must select a type");
+              return;
+            }
+            return value;
+          },
+        });
 
       if (step2.isDenied) { //boton back
         // Persistir consumo en wizard antes de volver al paso 1
@@ -202,6 +285,9 @@ export default function VehiclesPage() {
       while (!vehicleConfigured) {
         const fuelStep = await Swal.fire({
           title: "Vehicle Type",
+      if (step === "fuelType") {
+        const fuelResult = await CustomSwal.fire({
+          title: "Fuel Type",
           html: `
             <select id="fuelType" class="my-select" style="width: 100%; padding: 0.5rem; border: 1px solid #585233; border-radius: 4px;">
               <option value="" disabled ${!wizardFormStateRef.current.fuelType && wizardFormStateRef.current.type !== "electricCar" && wizardFormStateRef.current.type !== "fuelCar" ? "selected" : ""}>Select type</option>
@@ -213,6 +299,7 @@ export default function VehiclesPage() {
           background: "#CCD5B9",
           color: "#585233",
           customClass,
+          showCancelButton: true,
           showDenyButton: true,
           showCancelButton: true,
           confirmButtonText: "Next",
@@ -224,6 +311,11 @@ export default function VehiclesPage() {
             if (!fuel) {
               Swal.showValidationMessage("Select type");
               return false;
+            const select = CustomSwal.getPopup().querySelector('#fuelType');
+            const value = select?.value;
+            if (!value) {
+              CustomSwal.showValidationMessage("Select a fuel type");
+              return;
             }
             return fuel;
           },
@@ -238,17 +330,9 @@ export default function VehiclesPage() {
           return;
         }
 
-        const vehicleSubtype = fuelStep.value;
-        const isElectric = vehicleSubtype === "electricCar";
-        
-        // Persistir en wizard y sincronizar estado
-        wizardFormStateRef.current.fuelType = isElectric ? "electric" : vehicleSubtype;
-        wizardFormStateRef.current.type = isElectric ? "electricCar" : "fuelCar";
-       
-
-        // Paso 3: Consumo
-        const consumptionStep = await Swal.fire({
-          title: isElectric ? "Electric Car Consumption" : `${capitalize(vehicleSubtype)} Car Consumption`,
+      if (step === "units") {
+        const unitsResult = await CustomSwal.fire({
+          title: "Measurement units",
           html: `
             <div style="text-align: left;">
               <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Select unit</label>
@@ -328,10 +412,18 @@ export default function VehiclesPage() {
         vehicleConfigured = true;
       }
     }
+
+    await addVehicle(
+      formState.type,
+      formState.name,
+      formState.units || "",
+      formState.fuelType,
+      formState.consumption ?? undefined
+    );
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({
+    const result = await CustomSwal.fire({
       title: "Are you sure?",
       text: `You are about to delete "${id}". This action cannot be undone.`,
       icon: "warning",
@@ -352,15 +444,10 @@ export default function VehiclesPage() {
       await deleteVehicle(id);
 
       // mensaje de OK
-      await Swal.fire({
+      await CustomSwal.fire({
         title: "Deleted!",
         text: `"${id}" has been removed successfully.`,
         icon: "success",
-        background: "#E0E6D5",
-        color: "#585233",
-        customClass: {
-          confirmButton: "my-confirm-btn",
-        }
       });
     }
   };
