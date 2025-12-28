@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, limit as fsLimit, orderBy, query, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../core/config/firebaseConfig";
 import { type RouteRepository, type RouteSavedDTO } from "../../domain/repository/RouteRespository";
 
@@ -46,5 +46,43 @@ export class RouteRepositoryFirebase implements RouteRepository {
   async deleteRoute(userId: string, routeId: string): Promise<void> {
     if (!routeId) throw new Error("Route id is required");
     await deleteDoc(doc(userRoutesCollection(userId), routeId));
+  }
+
+  async getRoute(userId: string, routeId: string) {
+    if (!routeId) throw new Error("Route id is required");
+    const snap = await getDoc(doc(userRoutesCollection(userId), routeId));
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return {
+      id: snap.id,
+      name: data.name,
+      origin: data.origin,
+      destination: data.destination,
+      mobilityType: data.mobilityType,
+      mobilityMethod: data.mobilityMethod,
+      routeType: data.routeType,
+      createdAt: data.createdAt?.toDate?.() ?? new Date(),
+    };
+  }
+
+  async updateRoute(userId: string, routeId: string, payload: RouteSavedDTO): Promise<void> {
+    if (!routeId) throw new Error("Route id is required");
+    const routeName = payload.name?.trim();
+    if (!routeName) {
+      throw new Error("Route name is required when updating a route");
+    }
+    await setDoc(
+      doc(userRoutesCollection(userId), routeId),
+      {
+        name: routeName,
+        origin: payload.origin,
+        destination: payload.destination,
+        mobilityType: payload.mobilityType,
+        mobilityMethod: payload.mobilityMethod,
+        routeType: payload.routeType,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 }

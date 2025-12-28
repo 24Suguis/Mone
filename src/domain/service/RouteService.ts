@@ -78,8 +78,8 @@ export class RouteService {
         return this.provider.getRoute(
             options.origin,
             options.destination,
-            options.mobilityType,
-            options.routeType
+            options.mobilityType?.toLowerCase?.() || options.mobilityType,
+            options.routeType?.toLowerCase?.() || options.routeType
         );
 	}
 
@@ -106,9 +106,28 @@ export class RouteService {
         return this.repository.listRoutes(resolvedId);
     }
 
+    async getSavedRoute(routeId: string, userId?: string): Promise<RouteSavedDTO | null> {
+        const resolvedId = this.resolveUserId(userId);
+        return this.repository.getRoute(resolvedId, routeId);
+    }
+
     async deleteSavedRoute(routeId: string, userId?: string): Promise<void> {
         const resolvedId = this.resolveUserId(userId);
         await this.repository.deleteRoute(resolvedId, routeId);
+    }
+
+    async updateSavedRoute(routeId: string, payload: RouteSavedDTO, userId?: string): Promise<void> {
+        const resolvedId = this.resolveUserId(userId);
+        this.ensureRequiredFields(payload);
+        const trimmedName = payload.name?.trim();
+        if (!trimmedName) throw new Error("Route name is required");
+        const existing = await this.repository.getRoute(resolvedId, routeId);
+        if (!existing) throw new Error("RouteNotFoundException");
+        await this.repository.updateRoute(resolvedId, routeId, {
+            ...payload,
+            name: trimmedName,
+            mobilityMethod: payload.mobilityMethod ?? payload.mobilityType,
+        });
     }
 
     private ensureRequiredFields(options: BaseRouteOptions) {
