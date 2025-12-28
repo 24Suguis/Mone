@@ -240,8 +240,7 @@ export default function EditPlace() {
         toponymicAddress: baseName || undefined,
       };
       await placeViewmodel.updatePlace(placeId, payload);
-           
-      });
+      
       await CustomSwal.fire({
         title: "Place updated",
         text: `Place "${finalName}" updated successfully.`,
