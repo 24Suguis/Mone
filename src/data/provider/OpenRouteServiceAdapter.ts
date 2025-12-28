@@ -5,6 +5,21 @@ export class OpenRouteServiceAdapter implements IRouteProvider {
 
   async getRoute(origin: string, destination: string, mobilityType: string, routeType: string): Promise<Route> {
     const response = await this.api.getRoute(origin, destination, mobilityType, routeType);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "<no-body>");
+      console.error("ORS route error", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        mobilityType,
+        routeType,
+        origin,
+        destination,
+      });
+      throw new Error(`OpenRouteService error ${response.status}: ${response.statusText}`);
+    }
+
     const dto = await response.json();
 
     const feature = dto?.features?.[0];

@@ -30,6 +30,10 @@ export interface RouteViewmodelState {
 	searchRoute: (options: RouteSearchOptions) => Promise<RouteResponse>;
 	previewRoute: (options: RouteSearchOptions) => Promise<SerializedRoute>;
 	reset: () => void;
+	listSavedRoutes: (userId?: string) => Promise<any[]>;
+	getSavedRoute: (routeId: string, userId?: string) => Promise<any | null>;
+	updateSavedRoute: (routeId: string, payload: any, userId?: string) => Promise<void>;
+	deleteSavedRoute: (routeId: string, userId?: string) => Promise<void>;
 }
 
 const sanitizeValue = (value?: string | null): string => value?.trim() ?? "";
@@ -109,6 +113,22 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 		setResult(null);
 	}, []);
 
+	const listSavedRoutes = useCallback(async (userId?: string) => {
+		return facade.listSavedRoutes(userId);
+	}, [facade]);
+
+	const getSavedRoute = useCallback(async (routeId: string, userId?: string) => {
+		return facade.getSavedRoute(routeId, userId);
+	}, [facade]);
+
+	const updateSavedRoute = useCallback(async (routeId: string, payload: any, userId?: string) => {
+		return facade.updateSavedRoute(routeId, payload, userId);
+	}, [facade]);
+
+	const deleteSavedRoute = useCallback(async (routeId: string, userId?: string) => {
+		return facade.deleteSavedRoute(routeId, userId);
+	}, [facade]);
+
 	const searchRoute = useCallback(
 		async (options: RouteSearchOptions): Promise<RouteResponse> => {
 			const context = normalizeRouteOptions(options);
@@ -183,6 +203,10 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 		searchRoute,
 		previewRoute,
 		reset,
+		listSavedRoutes,
+		getSavedRoute,
+		updateSavedRoute,
+		deleteSavedRoute,
 	};
 };
 

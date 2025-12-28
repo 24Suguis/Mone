@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { RouteService } from "../../domain/service/RouteService";
 import CustomSwal from "../../core/utils/CustomSwal";
 import LeafletMap from "../components/LeafletMap";
@@ -9,6 +9,7 @@ import RouteTypeSelector from "../components/RouteTypeSelector";
 import { useAuth } from "../../core/context/AuthContext";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
+import BackButton from "../components/BackButton";
 const DEFAULT_CENTER = [39.99256, -0.067387];
 
 const normalizeMobilityKey = (mode) => {
@@ -70,7 +71,6 @@ const normalizeVehicleConsumption = (vehicle) => {
   if (!vehicle?.consumption) return null;
   const base = vehicle.consumption;
   const maybeAmount = base.amount.amount;
-  //console.log("eooooo", base.amount.unit);
   if (typeof maybeAmount === "number") {
     return {
       value: maybeAmount,
@@ -103,34 +103,23 @@ const computeVehicleCostDisplay = (vehicle, route, priceSnapshot) => {
   const unit = normalized.unit ?? "";
   const type = (vehicle.type ?? "").toLowerCase();
 
-  console.log("eoooooooooo ", type);
   if ((type === "fuelcar" || type === "fuel car") && distanceKm != null && priceSnapshot) {
     //normalized value es el consumo en l/100km
-    console.log("aqui", route.distance, normalized.value);
     const liters = (distanceKm / 100) * normalized.value;
     const fuelType = (vehicle.fuelType ?? "gasoline").toLowerCase();
     const dieselPrice = priceSnapshot.dieselPerLiter;
-    console.log("diesel price", dieselPrice);
     const gasolinePrice = priceSnapshot.gasolinePerLiter;
     let fuelPrice;
 
-    console.log("tioooo", fuelType);
     if (fuelType === "diesel") {
       // "??"" le dice que si por lo que sea es undefined use la otra
       fuelPrice = dieselPrice ?? gasolinePrice;
-      console.log("dieseeel", fuelPrice);
 
     } else {
       fuelPrice = gasolinePrice ?? dieselPrice;
-      console.log("gasofaa", fuelPrice);
 
     }
-    console.log("fuel price", fuelPrice);
     const currency = priceSnapshot.currency ?? "EUR";
-    console.log("currency", currency);
-    console.log("liters", liters);
-    console.log("fuelprice", fuelPrice);
-    console.log("final", liters * fuelPrice);
     if (Number.isFinite(liters) && Number.isFinite(fuelPrice)) {
       return formatCost(liters * fuelPrice, currency);
     }
@@ -160,15 +149,26 @@ const computeVehicleCostDisplay = (vehicle, route, priceSnapshot) => {
 export default function RouteDetails() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { routeId } = useParams();
   const { user } = useAuth();
-  const { loading: recalculatingRoute, searchRoute } = useRouteViewmodel();
+  const { loading: recalculatingRoute, searchRoute, getSavedRoute } = useRouteViewmodel();
   const vehicleViewmodel = VehicleViewModel();
-  const routePlan = location.state?.routePlan;
-  const searchMeta = location.state?.searchMeta;
-  const [activePlan, setActivePlan] = useState(routePlan ?? null);
+
+  const savedRouteFromState = location.state?.savedRoute;
+  const initialRoutePlan = location.state?.routePlan;
+  const initialSearchMeta = location.state?.searchMeta;
+
+  const [activePlan, setActivePlan] = useState(initialRoutePlan ?? null);
+  const [searchMeta, setSearchMeta] = useState(initialSearchMeta ?? null);
+  const [loadingSavedRoute, setLoadingSavedRoute] = useState(false);
+  const [savedRouteError, setSavedRouteError] = useState("");
+  const isSavedRouteDetail = Boolean(routeId);
+  const savedRouteCandidate = routeId && savedRouteFromState && savedRouteFromState.id === routeId ? savedRouteFromState : null;
+
   useEffect(() => {
-    setActivePlan(routePlan ?? null);
-  }, [routePlan]);
+    setActivePlan(initialRoutePlan ?? null);
+    setSearchMeta(initialSearchMeta ?? null);
+  }, [initialRoutePlan, initialSearchMeta]);
 
   const route = activePlan?.route;
   const baseRoute = activePlan?.baseRoute;
@@ -197,6 +197,68 @@ export default function RouteDetails() {
   useEffect(() => {
     setSelectedVehicleId("");
   }, [selectedMobility]);
+
+  const goBackToList = useCallback(() => {
+    try {
+      if (window.history && window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate("/routes");
+      }
+    } catch (error) {
+      navigate("/routes");
+    }
+  }, [navigate]);
+
+  const fetchSavedRoutePlan = useCallback(async () => {
+    if (!routeId || activePlan) return;
+    setLoadingSavedRoute(true);
+    setSavedRouteError("");
+    try {
+      let savedRoute = savedRouteCandidate;
+      if (!savedRoute) {
+        savedRoute = await getSavedRoute(routeId, user?.uid);
+      }
+      if (!savedRoute) {
+        throw new Error("Saved route not found");
+      }
+
+      const normalizedMobility = savedRoute.mobilityType || savedRoute.mobilityMethod || "vehicle";
+      const normalizedRouteType = savedRoute.routeType || "fastest";
+
+      const response = await searchRoute({
+        origin: savedRoute.origin,
+        destination: savedRoute.destination,
+        mobilityType: normalizedMobility,
+        routeType: normalizedRouteType,
+        userId: user?.uid,
+        name: savedRoute.name,
+      });
+
+      setActivePlan(response);
+      setSearchMeta({
+        label: savedRoute.name,
+        origin: savedRoute.origin,
+        destination: savedRoute.destination,
+        originLabel: savedRoute.origin,
+        destinationLabel: savedRoute.destination,
+        originCoords: parseLatLng(savedRoute.origin) ?? undefined,
+        destinationCoords: parseLatLng(savedRoute.destination) ?? undefined,
+        userId: user?.uid,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to load saved route";
+      setSavedRouteError(message);
+    } finally {
+      setLoadingSavedRoute(false);
+    }
+  }, [routeId, activePlan, savedRouteCandidate, getSavedRoute, searchRoute, user?.uid]);
+
+  useEffect(() => {
+    if (!isSavedRouteDetail) return;
+    if (activePlan) return;
+    fetchSavedRoutePlan();
+  }, [isSavedRouteDetail, activePlan, fetchSavedRoutePlan]);
 
   const vehicleOptions = useMemo(() => {
     if (!Array.isArray(vehicles)) return [];
@@ -287,8 +349,14 @@ export default function RouteDetails() {
   const resolvedCostDisplay = useMemo(() => {
     const vehicleEstimate = computeVehicleCostDisplay(selectedVehicle, route, priceSnapshot);
     if (vehicleEstimate) return vehicleEstimate;
+    const mobility = (route?.mobilityType || selectedMobility || "").toLowerCase();
+    if ((mobility === "walk" || mobility === "bike") && Number.isFinite(route?.duration)) {
+      const kcalPerMin = mobility === "walk" ? 4.5 : 6;
+      const totalKcal = (route?.duration ?? 0) * kcalPerMin;
+      return Number.isFinite(totalKcal) ? `${Math.round(totalKcal)} kcal` : "—";
+    }
     return formatCost(route?.cost, route?.currency);
-  }, [priceSnapshot, route, selectedVehicle]);
+  }, [priceSnapshot, route, selectedVehicle, selectedMobility]);
 
   const handleMobilityChange = useCallback(
     (nextMobility) => {
@@ -366,20 +434,6 @@ export default function RouteDetails() {
     return markers[0] ?? DEFAULT_CENTER;
   }, [mapPolyline, markers]);
 
-  if (!activePlan) {
-    return (
-      <section className="place-row">
-        <aside className="place-card default-container with-border">
-          <h2 className="card-title">Route details unavailable</h2>
-          <p>Plan una ruta primero para ver sus detalles.</p>
-          <button type="button" className="btn btn-primary" onClick={() => navigate("/searchroute", { replace: true })}>
-            Volver a buscar
-          </button>
-        </aside>
-      </section>
-    );
-  }
-
   const steps = Array.isArray(route?.steps) ? route.steps : [];
 
   const [saving, setSaving] = useState(false);
@@ -387,7 +441,7 @@ export default function RouteDetails() {
 
   const handleSaveRoute = useCallback(
     async (routeName) => {
-      if (!routePlan) return;
+      if (!activePlan) return;
       const originStr = searchMeta?.origin ?? (markers[0] ? `${markers[0][0]},${markers[0][1]}` : "");
       const destinationStr = searchMeta?.destination ?? (markers[1] ? `${markers[1][0]},${markers[1][1]}` : "");
       if (!originStr || !destinationStr) {
@@ -426,7 +480,7 @@ export default function RouteDetails() {
         setSaving(false);
       }
     },
-    [routePlan, searchMeta, markers, resolvedDestinationLabel, resolvedOriginLabel, route?.mobilityType, route?.routeType]
+    [activePlan, searchMeta, markers, resolvedDestinationLabel, resolvedOriginLabel, route?.mobilityType, route?.routeType]
   );
 
   const handlePromptAndSave = useCallback(async () => {
@@ -454,9 +508,38 @@ export default function RouteDetails() {
     await handleSaveRoute(selectedName || undefined);
   }, [handleSaveRoute, searchMeta]);
 
+  if (!activePlan) {
+    return (
+      <section className="place-row">
+        <aside className="place-card default-container with-border">
+          <BackButton label="Back" style={{ marginBottom: "0.20rem" }} />
+          <h2 className="card-title">Route details</h2>
+          <p>{loadingSavedRoute ? "Loading saved route..." : "Route details unavailable"}</p>
+          {savedRouteError ? <p className="error-text">{savedRouteError}</p> : null}
+          <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+            {isSavedRouteDetail ? (
+              <button type="button" className="btn" onClick={goBackToList}>
+                Back
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate("/searchroute", { replace: true })}
+              >
+                Volver a buscar
+              </button>
+            )}
+          </div>
+        </aside>
+      </section>
+    );
+  }
+
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
+        <BackButton label="Back" style={{ marginBottom: "0.25rem" }} />
         <h2 className="card-title">
           Route details {searchMeta?.label ? <span>· {searchMeta.label}</span> : null}
         </h2>
@@ -516,18 +599,26 @@ export default function RouteDetails() {
         </div>
 
         <div style={{ display: "flex", gap: "0.6rem", marginTop: "1.25rem" }}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handlePromptAndSave}
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save Route"}
-          </button>
+          {isSavedRouteDetail ? (
+            <button type="button" className="btn" onClick={goBackToList}>
+              Back
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handlePromptAndSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Route"}
+              </button>
 
-          <button type="button" className="btn" onClick={() => navigate("/searchroute")}>
-            Search another route
-          </button>
+              <button type="button" className="btn" onClick={() => navigate("/searchroute")}>
+                Search another route
+              </button>
+            </>
+          )}
         </div>
 
         {saveError && <p className="error-text" style={{ marginTop: "0.75rem" }}>{saveError}</p>}
@@ -543,19 +634,6 @@ export default function RouteDetails() {
           highlightDestination
           style={{ minHeight: 360 }}
         />
-
-        <div className="default-container with-border" style={{ marginTop: "1rem" }}>
-          <h3>Turn-by-turn instructions</h3>
-          {steps.length ? (
-            <ol className="stack" style={{ marginTop: "0.75rem" }}>
-              {steps.map((step, index) => (
-                <li key={`${index}-${step?.slice?.(0, 10) ?? index}`}>{step}</li>
-              ))}
-            </ol>
-          ) : (
-            <p>No instructions provided for this route.</p>
-          )}
-        </div>
       </main>
     </section>
   );
