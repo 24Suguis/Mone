@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
+import FavoriteToggle from "../components/FavoriteToggle.jsx";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import CustomSwal from "../../core/utils/CustomSwal.js";
 import { isValidVehicleName } from "../../core/utils/validators";
@@ -12,6 +13,7 @@ export default function VehiclesPage() {
     addVehicle,
     deleteVehicle,
     updateVehicle,
+    setFavorite,
     getFuelUnitsPreference,
     getElectricUnitsPreference,
   } = VehicleViewModel();
@@ -40,14 +42,15 @@ export default function VehiclesPage() {
     "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
 
   const filteredVehicles = useMemo(() => {
+    const sorted = [...vehicles].sort(
+      (a, b) => Number(Boolean(b?.favorite || b?.isFavorite)) - Number(Boolean(a?.favorite || a?.isFavorite))
+    );
     const normalized = searchTerm.trim().toLowerCase();
-    if (!normalized) return vehicles;
-    return vehicles.filter((vehicle) => {
+    if (!normalized) return sorted;
+    return sorted.filter((vehicle) => {
       const nameMatch = vehicle.name?.toLowerCase().includes(normalized);
       const typeMatch = vehicle.type?.toLowerCase().includes(normalized);
-      const fuelMatch = vehicle.fuelType
-        ? vehicle.fuelType.toLowerCase().includes(normalized)
-        : false;
+      const fuelMatch = vehicle.fuelType ? vehicle.fuelType.toLowerCase().includes(normalized) : false;
       return nameMatch || typeMatch || fuelMatch;
     });
   }, [vehicles, searchTerm]);
@@ -56,6 +59,12 @@ export default function VehiclesPage() {
   const bikes = useMemo(() => filteredVehicles.filter((v) => v.type === "Bike"), [filteredVehicles]);
   const walkings = useMemo(() => filteredVehicles.filter((v) => v.type === "Walking"), [filteredVehicles]);
   const regularVehicles = useMemo(() => filteredVehicles.filter((v) => v.type !== "Bike" && v.type !== "Walking"), [filteredVehicles]);
+
+  useEffect(() => {
+    // Log what the page is actually rendering
+    // eslint-disable-next-line no-console
+    console.debug("[vehicles] page render list", vehicles.map((v) => ({ name: v?.name, favorite: v?.favorite, isFavorite: v?.isFavorite })));
+  }, [vehicles]);
 
 
   const getVehicleImage = (vehicle) => {
@@ -451,7 +460,7 @@ export default function VehiclesPage() {
       
       if (isEditing) {
         return (
-          <li key={v.id} className="item-card item-card--editing">
+          <li key={v.id || v.name} className="item-card item-card--editing">
             <div className="edit-form">
               <h3 className="edit-form__title">Edit {capitalize(v.type)}</h3>
               
@@ -522,13 +531,20 @@ export default function VehiclesPage() {
       }
 
       return (
-        <li key={v.id} className="item-card">
+        <li key={v.id || v.name} className="item-card">
           <div className="item-card__icon" aria-hidden>
             <img src={getVehicleImage(v)} className="item-icon" alt="vehicle" />
           </div>
 
           <div className="item-card__content">
-            <div className="item-card__title">{v.name}</div>
+            <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+              <span>{v.name}</span>
+              <FavoriteToggle
+                active={Boolean(v.favorite || v.isFavorite)}
+                onToggle={() => setFavorite(v.name, !(v.favorite || v.isFavorite))}
+                label="Toggle favorite vehicle"
+              />
+            </div>
             <div className="item-card__meta">
               {v.fuelType ? `${capitalize(v.fuelType)} • ` : ""}
               {formatConsumptionDisplay(v)}

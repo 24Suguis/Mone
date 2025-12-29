@@ -27,7 +27,8 @@ type VehicleDoc = {
     type: string;
     name: string;
     fuelType?: string | null;
-    consumption?: number | undefined;
+    consumption?: any;
+    favorite?: boolean;
     //{ amount: number; unit?: Consumption["unit"]}
 };
 
@@ -53,6 +54,7 @@ const serializeVehicle = (vehicle: Vehicle | Partial<Vehicle>) => {
         name: vehicle?.name,
         fuelType: vehicle?.fuelType ?? null,
         consumption: vehicle?.consumption,
+        favorite: (vehicle as any)?.favorite ?? false,
     });
 };
 
@@ -68,24 +70,41 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
             const data = d.data() as VehicleDoc;
             const normalizedFuel = normalizeFuelType(data.fuelType);
             const type = data.type;
+            const baseConsumption: any = (data as any).consumption;
+            const amount = typeof baseConsumption === "object" ? (baseConsumption as any).amount : baseConsumption;
+            const consumption = amount !== undefined ? amount : (baseConsumption?.amount ?? undefined);
+            const favorite = Boolean((data as any).favorite);
 
-            switch (type.toLowerCase()) {
-                case "bike":
-                    return VehicleFactory.createVehicle("bike", data.name, undefined, data.consumption.amount ? data.consumption : undefined);
+            console.debug("[repo] vehicle doc", { id: d.id, name: data.name, type: data.type, favorite: data.favorite });
 
-                case "walking":
-                    return VehicleFactory.createVehicle("walking", data.name, undefined, data.consumption.amount ? data.consumption : undefined);
+            const base = (() => {
+                switch (type.toLowerCase()) {
+                    case "bike":
+                        return VehicleFactory.createVehicle("bike", data.name, undefined, consumption, favorite);
 
-                case "fuelcar":
-                    return VehicleFactory.createVehicle("fuelCar", data.name, normalizedFuel, data.consumption.amount ? data.consumption : undefined);
+                    case "walking":
+                        return VehicleFactory.createVehicle("walking", data.name, undefined, consumption, favorite);
 
-                case "electriccar":
-                    return VehicleFactory.createVehicle("electricCar", data.name, normalizedFuel, data.consumption.amount ? data.consumption : undefined);
+                    case "fuelcar":
+                        return VehicleFactory.createVehicle("fuelCar", data.name, normalizedFuel, consumption, favorite);
 
-                default:
-                    console.error("Unknown vehicle type in Firestore:", data);
-                    return null;
-            }
+                    case "electriccar":
+                        return VehicleFactory.createVehicle("electricCar", data.name, normalizedFuel, consumption, favorite);
+
+                    default:
+                        console.error("Unknown vehicle type in Firestore:", data);
+                        return null;
+                }
+            })();
+
+            if (!base) return null;
+
+            // Return a plain object to avoid any class-level defaults overriding favorite
+            return {
+                ...base,
+                favorite,
+                isFavorite: favorite,
+            } as any;
         }).filter(v => v !== null);
     }
 
@@ -114,6 +133,7 @@ export class VehicleRepositoryFirebase implements VehicleRepositoryInterface {
             name: vehicle.name,
             fuelType: vehicle.fuelType,
             consumption: vehicle.consumption,
+            favorite: Boolean((vehicle as any).favorite),
             createdAt: serverTimestamp(),
         });
     }
