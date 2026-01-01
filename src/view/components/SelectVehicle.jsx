@@ -25,9 +25,7 @@ const normalizeOptions = (list, mode) => {
       if (!optionValue) return null;
       return opt;
     })
-    .filter(Boolean)
-    .sort((a, b) => Number(Boolean(b?.favorite || b?.isFavorite)) - Number(Boolean(a?.favorite || a?.isFavorite)));
-
+    .filter(Boolean);
   const defaultOpt = getDefaultOption(mode);
   const defaultValue = getOptionValue(defaultOpt);
   const hasDefault = cleaned.some((opt) => getOptionValue(opt) === defaultValue);
@@ -118,13 +116,11 @@ export default function SelectVehicle({
           options.map((o, idx) => {
             const rawValue = getOptionValue(o);
             const optionValue = rawValue || `opt-${idx + 1}`;
-            const isFavorite = Boolean(o.favorite || o.isFavorite);
             const label = o.name ?? o.label ?? o.id ?? optionValue;
             const meta = o.meta ?? "";
-            const decoratedLabel = isFavorite ? `★ ${label}` : label;
             return (
               <option key={optionValue} value={optionValue}>
-                {meta ? `${decoratedLabel} — ${meta}` : decoratedLabel}
+                {meta ? `${label} — ${meta}` : label}
               </option>
             );
           })}

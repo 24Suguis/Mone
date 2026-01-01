@@ -10,12 +10,6 @@ import { DistanceUnitDecorator } from "../decorators/route/DistanceUnitDecorator
 import { ConsumptionUnitDecorator } from "../decorators/route/ConsumptionUnitDecorator";
 import { CostEstimatorDecorator } from "../decorators/Cost/CostEstimatorDecorator";
 
-const requireOnline = () => {
-    if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
-        throw new Error("Se requiere conexión a internet para esta acción.");
-    }
-};
-
 export interface RouteResponse {
     preferences: UserPreferences;
     route: SerializedRoute;
@@ -41,10 +35,6 @@ export class RouteFacade {
     private service: RouteService;
     private preferencesService: UserPreferencesService;
     private costGateway?: CostEstimatorGateway;
-    private priceSnapshotCache: PriceSnapshot | null = null;
-    private priceSnapshotFetchedAt = 0;
-    private priceSnapshotFailedUntil = 0;
-    private priceSnapshotInFlight: Promise<PriceSnapshot> | null = null;
 
     constructor(
         deps: {
@@ -59,35 +49,12 @@ export class RouteFacade {
     }
 
     async requestRoute(options: RouteRequestOptions & { userId?: string }, vehicle?: Vehicle): Promise<RouteResponse> {
-        requireOnline();
         const resolvedUserId = this.resolveUserId(options.userId);
-
-        const now = typeof performance !== "undefined" ? () => performance.now() : () => Date.now();
-        const t0 = now();
-        const preferencesPromise = this.preferencesService.get(resolvedUserId);
-        const pricesPromise = this.loadPriceSnapshot();
-
-        const preferences = await preferencesPromise;
-        const t1 = now();
+        const preferences = await this.preferencesService.get(resolvedUserId);
+        const priceSnapshot = await this.loadPriceSnapshot();
 
         const plannerOptions = this.applyVehicleOverrides(this.stripFacadeFields(options), vehicle);
-        const routePromise = this.service.requestRoute(plannerOptions);
-
-        const [rawRoute, priceSnapshot] = await Promise.all([
-            routePromise,
-            pricesPromise.catch((err) => {
-                console.warn("RouteFacade: price snapshot skipped", err);
-                return null;
-            }),
-        ]);
-        const t3 = now();
-
-        console.info("RouteFacade timing", {
-            loadPreferencesMs: Number((t1 - t0).toFixed(2)),
-            loadPricesMs: "parallel",
-            requestRouteMs: "parallel",
-            totalMs: Number((t3 - t0).toFixed(2)),
-        });
+        const rawRoute = await this.service.requestRoute(plannerOptions);
 
         const canonicalConsumption =
             this.normalizeConsumption(plannerOptions.estimatedConsumption) ??
@@ -136,7 +103,6 @@ export class RouteFacade {
     }
 
     async previewRoute(options: RouteRequestOptions, vehicle?: Vehicle): Promise<SerializedRoute> {
-        requireOnline();
         const plannerOptions = this.applyVehicleOverrides(options, vehicle);
         const rawRoute = await this.service.requestRoute(plannerOptions);
         return this.serializeRoute(rawRoute);
@@ -167,20 +133,8 @@ export class RouteFacade {
         return this.service.listSavedRoutes(userId);
     }
 
-    async getSavedRoute(routeId: string, userId?: string) {
-        return this.service.getSavedRoute(routeId, userId);
-    }
-
-    async updateSavedRoute(routeId: string, payload: any, userId?: string) {
-        return this.service.updateSavedRoute(routeId, payload, userId);
-    }
-
     async deleteSavedRoute(routeId: string, userId?: string) {
         return this.service.deleteSavedRoute(routeId, userId);
-    }
-
-    async setFavorite(routeId: string, favorite: boolean, userId?: string) {
-        return this.service.setFavorite(routeId, favorite, userId);
     }
 
     private stripFacadeFields(options: RouteRequestOptions & { userId?: string }): RouteRequestOptions {
@@ -224,44 +178,9 @@ export class RouteFacade {
 
     private async loadPriceSnapshot(): Promise<PriceSnapshot | null> {
         if (!this.costGateway) return null;
-
-        const nowMs = Date.now();
-        const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
-        const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // 5m
-
-        if (this.priceSnapshotCache && nowMs - this.priceSnapshotFetchedAt < CACHE_TTL_MS) {
-            return this.priceSnapshotCache;
-        }
-
-        if (nowMs < this.priceSnapshotFailedUntil) {
-            return null;
-        }
-
-        if (!this.priceSnapshotInFlight) {
-            this.priceSnapshotInFlight = this.costGateway
-                .getLatestPrices()
-                .then((snapshot) => {
-                    this.priceSnapshotCache = snapshot;
-                    this.priceSnapshotFetchedAt = Date.now();
-                    this.priceSnapshotFailedUntil = 0;
-                    return snapshot;
-                })
-                .catch((err) => {
-                    this.priceSnapshotFailedUntil = Date.now() + FAILURE_COOLDOWN_MS;
-                    throw err;
-                })
-                .finally(() => {
-                    this.priceSnapshotInFlight = null;
-                });
-        }
-
         try {
-            const result = await this.priceSnapshotInFlight;
-            this.priceSnapshotCache = result;
-            this.priceSnapshotFetchedAt = Date.now();
-            return result;
+            return await this.costGateway.getLatestPrices();
         } catch (err) {
-            this.priceSnapshotFailedUntil = nowMs + FAILURE_COOLDOWN_MS;
             console.warn("RouteFacade: unable to load price snapshot", err);
             return null;
         }

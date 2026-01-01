@@ -15,8 +15,6 @@ const buildVehicle = (overrides: Partial<Vehicle> = {}): Vehicle => ({
 	type: "Bike",
 	fuelType: null,
 	consumption: { amount: 5, unit: "kcal/min" },
-	favorite: false,
-	isFavorite: false,
 	mostrarInfo: vi.fn(),
 	...overrides,
 });
@@ -84,7 +82,7 @@ describe("H12-H14: Vehicles integration", () => {
 			const result = await service.getVehicles(undefined);
 
 			expect(repo.getVehiclesByOwnerId).toHaveBeenCalledWith(OWNER_ID);
-			expect(result).toEqual(mockList);
+			expect(result).toBe(mockList);
 		});
 
 		test("H13-E2 - Válido: devuelve una lista vacía cuando no hay vehículos", async () => {

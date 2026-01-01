@@ -3,7 +3,6 @@ import { useAuth } from "../../../context/AuthContext";
 import LeafletMap from "../components/LeafletMap.jsx";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import CustomSwal from "../../core/utils/CustomSwal";
-import BackButton from "../components/BackButton";
 
 const SUCCESS_BUTTON_STYLE = {
   backgroundColor: "var(--color-success, #198754)",
@@ -215,7 +214,6 @@ export default function NewPlace() {
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
-        <BackButton label="Back" style={{ marginBottom: "0.25rem" }} />
         <h2 className="card-title">New Place</h2>
 
         <form onSubmit={handleSubmit} className="stack">

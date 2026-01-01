@@ -13,6 +13,4 @@ export interface RouteRepository {
 	saveRoute(userId: string, payload: RouteSavedDTO): Promise<string>;
 	listRoutes(userId: string): Promise<RouteSavedDTO[]>;
 	deleteRoute(userId: string, routeId: string): Promise<void>;
-	getRoute(userId: string, routeId: string): Promise<RouteSavedDTO | null>;
-	updateRoute(userId: string, routeId: string, payload: RouteSavedDTO): Promise<void>;
 }

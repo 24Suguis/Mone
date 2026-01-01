@@ -3,7 +3,6 @@ import CustomSwal from "../../core/utils/CustomSwal";
 import { useNavigate, useLocation } from "react-router-dom";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import EditDeleteActions from "../components/EditDeleteActions.jsx";
-import FavoriteToggle from "../components/FavoriteToggle.jsx";
 
 const PLUS_ICON_PATH = "M12 2a1 1 0 0 1 1 1v8h8a1 1 0 1 1 0 2h-8v8a1 1 0 1 1-2 0v-8H3a1 1 0 1 1 0-2h8V3a1 1 0 0 1 1-1z";
 
@@ -35,10 +34,9 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
   }, [loadPlaces, location.pathname]);
 
   const filteredPlaces = useMemo(() => {
-    const base = [...places].sort((a, b) => Number(Boolean(b?.favorite || b?.isFavorite)) - Number(Boolean(a?.favorite || a?.isFavorite)));
-    if (!query.trim()) return base;
+    if (!query.trim()) return places;
     const needle = query.trim().toLowerCase();
-    return base.filter((place) => {
+    return places.filter((place) => {
       const parts = [
         place?.name,
         place?.toponymicAddress,
@@ -135,25 +133,7 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
         {cardIcon}
       </div>
       <div className="item-card__content">
-          <div className="item-card__title" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-          <span>{place?.name || "Unnamed place"}</span>
-          <FavoriteToggle
-            active={Boolean(place?.favorite || place?.isFavorite)}
-            onToggle={async () => {
-              const next = !place?.favorite && !place?.isFavorite;
-              // Optimistic update to avoid scroll jump
-              setPlaces((prev) => prev.map((p) => (p.id === place.id ? { ...p, favorite: next, isFavorite: next } : p)));
-              try {
-                await placeViewmodel.toggleFavorite(place.id, next);
-              } catch (err) {
-                // Rollback on error
-                setPlaces((prev) => prev.map((p) => (p.id === place.id ? { ...p, favorite: !next, isFavorite: !next } : p)));
-                setError(err?.message || "Unable to update favorite.");
-              }
-            }}
-            label="Toggle favorite place"
-          />
-        </div>
+        <div className="item-card__title">{place?.name || "Unnamed place"}</div>
         <div className="item-card__meta">{formatMeta(place) || "No extra information"}</div>
         {place?.description && <p className="item-card__meta">{place.description}</p>}
       </div>
