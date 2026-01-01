@@ -11,7 +11,7 @@ export class VehicleFactory {
      * @param type {Bike, ElectricCar, FuelCar, Walking}
      * @param consumption Valor de consumo según el tipo (kWh/100km o L/100km)
      */
-    static createVehicle(type: string, name: string, fuelType?: FuelType, consumption: number = 0, favorite = false
+    static createVehicle(type: string, name: string, fuelType?: FuelType, consumption: number = 0
     ): Vehicle {
 
         // Validación del nombre
@@ -21,21 +21,21 @@ export class VehicleFactory {
 
         switch (type.toLowerCase()) {
             case 'bike':
-                return Object.assign(new Bike(name, consumption), { favorite });
+                return new Bike(name, consumption);
 
             case 'walking':
-                return Object.assign(new Walking(name, consumption), { favorite });
+                return new Walking(name, consumption);
 
             case 'electriccar':
                 if (consumption < 0) throw new Error('Consumo inválido para vehículo eléctrico');
-                return Object.assign(new ElectricCar(name, consumption), { favorite });
+                return new ElectricCar(name, consumption);
 
             case 'fuelcar':
                 if (!fuelType || (fuelType !== 'gasoline' && fuelType !== 'diesel')) {
                     throw new Error('FuelCar solo puede ser gasoline o diesel');
                 }
                 if (consumption < 0) throw new Error('Consumo inválido para coche de combustible');
-                return Object.assign(new FuelCar(name, fuelType, consumption), { favorite });
+                return new FuelCar(name, fuelType, consumption);
 
             default:
                 throw new Error(`Tipo de vehículo desconocido: ${type}`);

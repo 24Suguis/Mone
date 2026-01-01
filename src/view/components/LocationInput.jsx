@@ -200,13 +200,9 @@ export default function LocationInput({
   }), [inputValue, coords]);
 
   return (
-    <div
-      className="form-row field-row location-input "
-      data-state={JSON.stringify(resolvedState)}
-      style={{ position: "relative", overflow: "visible" }}
-    >
+    <div className="form-row field-row location-input " data-state={JSON.stringify(resolvedState)}>
       {label && <label>{label}</label>}
-      <div className="input-with-btn" style={{ position: "relative", overflow: "visible" }}>
+      <div className="input-with-btn" style={{ position: "relative" }}>
         <input
           type="text"
           placeholder={placeholder}
@@ -275,11 +271,11 @@ export default function LocationInput({
             className="saved-list"
             style={{
               position: "absolute",
-              top: "100%",
+              top: "65%",
               left: 0,
               right: 0,
-              zIndex: 40,
-              maxHeight: 240,
+              zIndex: 20,
+              maxHeight: 200,
               overflowY: "auto",
               background: "var(--color-secondary)",
               border: "1px solid #ddd",

@@ -15,12 +15,12 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),  // <- agregar aquí
     ],
     define: {
-      'import.meta.env': env,
+      'import. meta.env': env,
     },
     server: {
       proxy: {
         '/ors': {
-          target: env.VITE_ORS_BASE_URL || 'https://api.openrouteservice.org',
+          target: env. VITE_ORS_BASE_URL || 'https://api.openrouteservice.org',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/ors/, ''),
           headers: env.VITE_ORS_API_KEY

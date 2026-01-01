@@ -1,16 +1,14 @@
 // filepath: c:\Users\ervig\Documents\Projecto App Maps Mone\ProjectMone\mone\src\components\SearchRoute.jsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../core/context/AuthContext";
 import CustomSwal from "../../core/utils/CustomSwal";
 import LeafletMap from "../components/LeafletMap";
-import BackButton from "../components/BackButton";
 import SavedPlacesModal from "../components/SavedPlacesModal";
 import MobilitySelector from "../components/MobilitySelector";
 import RouteTypeSelector from "../components/RouteTypeSelector";
 import SelectVehicle from "../components/SelectVehicle";
 import LocationInput from "../components/LocationInput";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
-import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 
 const DEFAULT_CENTER = [39.99256, -0.067387];
 const createLocationState = () => ({ value: "", coords: null, error: "" });
@@ -249,23 +247,6 @@ export default function SearchRoute() {
     setSelectedVehicle("");
   }, [mobility]);
 
-  const fetchToponymForCoords = useCallback(async (key, coords) => {
-    if (!Array.isArray(coords)) return;
-    const [lat, lng] = coords;
-    try {
-      const suggestion = await placeViewmodel.toponymFromCoords(lat, lng);
-      if (suggestion?.label) {
-        mutateLocation(key, (prev) => {
-          if (!prev.coords) return prev;
-          if (prev.coords[0] !== lat || prev.coords[1] !== lng) return prev;
-          return { ...prev, value: suggestion.label };
-        });
-      }
-    } catch (err) {
-      console.warn("NewRoute: unable to resolve toponym", err);
-    }
-  }, [mutateLocation]);
-
   const combinedError = error || requestError;
   const primaryButtonLabel = hasPreview
     ? (loading || saving ? "Saving..." : "Save Route")
@@ -274,7 +255,6 @@ export default function SearchRoute() {
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
-        <BackButton label="Back" style={{ marginBottom: "0.25rem" }} />
         <h2 className="card-title">Save Route</h2>
 
         <form onSubmit={handleFormSubmit} className="stack">
@@ -360,13 +340,10 @@ export default function SearchRoute() {
             setError("");
             if (!origin.coords) {
               handleLocationCoordsChange("origin", [lat, lng], formatLatLng([lat, lng]));
-              fetchToponymForCoords("origin", [lat, lng]);
             } else if (!destination.coords) {
               handleLocationCoordsChange("destination", [lat, lng], formatLatLng([lat, lng]));
-              fetchToponymForCoords("destination", [lat, lng]);
             } else {
               handleLocationCoordsChange("origin", [lat, lng], formatLatLng([lat, lng]));
-              fetchToponymForCoords("origin", [lat, lng]);
               mutateLocation("destination", () => createLocationState());
             }
           }}

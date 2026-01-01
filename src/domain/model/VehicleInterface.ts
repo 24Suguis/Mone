@@ -17,6 +17,5 @@ export interface Vehicle {
     fuelType: FuelType | null;//la bici es null
     consumption: Consumption; 
     type: string; //Bike, ElectricCar, FuelCar, Walking para poder saber tipo a la hora de guardarlo y mostrarlo ya que walking y bike dan problemas porque son casi iguales
-  favorite?: boolean;
     mostrarInfo(): void; 
 }
