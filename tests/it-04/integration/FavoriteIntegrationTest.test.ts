@@ -94,7 +94,7 @@ describe("HU23 - Favorite vehicles integration", () => {
         vi.restoreAllMocks();
     });
 
-    describe("setFavorite", () => {
+    describe("setFavorite - marcar favoritos", () => {
         test("E1 - Válido: marca un vehículo como favorito", async () => {
             seedVehicles([buildVehicle({ favorite: false })]);
 
@@ -104,12 +104,13 @@ describe("HU23 - Favorite vehicles integration", () => {
             expect(store[USER_ID][0].favorite).toBe(true);
         });
 
-        test("E2 - Inválido: ya estaba marcado como favorito", async () => {
+        test("E2 - Válido: desmarca un vehículo como favorito", async () => {
             seedVehicles([buildVehicle({ favorite: true })]);
 
-            await expect(service.setFavorite(undefined, "Fiat Punto", true)).rejects.toThrow(
-                "VehicleAlreadySavedAsFavouriteException"
-            );
+            await service.setFavorite(undefined, "Fiat Punto", false);
+
+            expect(repo.updateVehicle).toHaveBeenCalledWith(USER_ID, "Fiat Punto", { favorite: false });
+            expect(store[USER_ID][0].favorite).toBe(false);
         });
 
         test("E3 - Inválido: el vehículo no existe", async () => {
@@ -118,6 +119,30 @@ describe("HU23 - Favorite vehicles integration", () => {
             await expect(service.setFavorite(undefined, "Missing", true)).rejects.toThrow(
                 "VehicleNotFoundException"
             );
+        });
+    });
+
+    describe("setFavorite -desmarcar favoritos", () => {
+        test("HU27 E1 - Válido: desmarca un vehículo como favorito", async () => {
+            seedVehicles([buildVehicle({ favorite: true })]);
+
+            await service.setFavorite(undefined, "Fiat Punto", false);
+
+            expect(repo.updateVehicle).toHaveBeenCalledWith(USER_ID, "Fiat Punto", { favorite: false });
+            expect(store[USER_ID][0].favorite).toBe(false);
+        });
+
+        test("HU27 E6 - Inválido: base de datos no disponible", async () => {
+            seedVehicles([buildVehicle({ favorite: true })]);
+            setNavigatorStatus(false);
+
+            await expect(service.setFavorite(undefined, "Fiat Punto", false)).rejects.toThrow(
+                "DatabaseNotAvailableException"
+            );
+
+            setNavigatorStatus(true);
+            expect(repo.updateVehicle).not.toHaveBeenCalled();
+            expect(store[USER_ID][0].favorite).toBe(true);
         });
 
      

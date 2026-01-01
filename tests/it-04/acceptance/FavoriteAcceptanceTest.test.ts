@@ -31,12 +31,16 @@ const ensureLocalStorage = () => {
 	} as unknown as Storage;
 };
 
-const ensureNavigator = () => {
-	if (typeof globalThis.navigator !== "undefined") return;
+const setNavigatorStatus = (online: boolean) => {
 	Object.defineProperty(globalThis, "navigator", {
-		value: { onLine: true } as Navigator,
+		value: { onLine: online } as Navigator,
 		configurable: true,
 	});
+};
+
+const ensureNavigator = () => {
+	if (typeof globalThis.navigator !== "undefined") return;
+	setNavigatorStatus(true);
 };
 
 const loginUser = async () => {
@@ -61,7 +65,7 @@ const seedVehicle = async (service: VehicleService, favorite: boolean) => {
 	}
 };
 
-describe("HU23 - Pruebas aceptación favoritos", () => {
+describe("Pruebas aceptación favoritos", () => {
 	beforeAll(() => {
 		ensureLocalStorage();
 		ensureNavigator();
@@ -83,27 +87,50 @@ describe("HU23 - Pruebas aceptación favoritos", () => {
 		}
 	}, HOOK_TIMEOUT);
 
-	it("HU23 E1: marca un vehículo como favorito", async () => {
-		const service = getVehicleService();
-		await seedVehicle(service, false);
+	describe("HU23 - marcar favoritos", () => {
+		it("HU23 E1: marca un vehículo como favorito", async () => {
+			const service = getVehicleService();
+			await seedVehicle(service, false);
 
-		await service.setFavorite(userId, VEHICLE_NAME, true);
+			await service.setFavorite(userId, VEHICLE_NAME, true);
 
-		const vehicles = await service.getVehicles(userId);
-		const fiat = vehicles.find((vehicle) => vehicle.name === VEHICLE_NAME);
-		expect(fiat).toBeDefined();
-		expect(fiat?.favorite).toBe(true);
+			const vehicles = await service.getVehicles(userId);
+			const fiat = vehicles.find((vehicle) => vehicle.name === VEHICLE_NAME);
+			expect(fiat).toBeDefined();
+			expect(fiat?.favorite).toBe(true);
+		});
 	});
 
-	it("HU23 E2: desmarca un vehículo como favorito (repo real)", async () => {
-		const service = getVehicleService();
-		await seedVehicle(service, true);
+	describe("HU27 - desmarcar favoritos", () => {
+		it("HU27 E1: desmarca un vehículo como favorito ", async () => {
+			const service = getVehicleService();
+			await seedVehicle(service, true);
 
-		await service.setFavorite(userId, VEHICLE_NAME, false);
+			await service.setFavorite(userId, VEHICLE_NAME, false);
 
-		const vehicles = await service.getVehicles(userId);
-		const fiat = vehicles.find((vehicle) => vehicle.name === VEHICLE_NAME);
-		expect(fiat).toBeDefined();
-		expect(fiat?.favorite).toBe(false);
+			const vehicles = await service.getVehicles(userId);
+			const fiat = vehicles.find((vehicle) => vehicle.name === VEHICLE_NAME);
+			expect(fiat).toBeDefined();
+			expect(fiat?.favorite).toBe(false);
+		});
+
+		it("HU27 E6: falla si la base de datos no está disponible", async () => {
+			const service = getVehicleService();
+			await seedVehicle(service, true);
+
+			setNavigatorStatus(false);
+			try {
+				await expect(service.setFavorite(userId, VEHICLE_NAME, false)).rejects.toThrow(
+					"DatabaseNotAvailableException"
+				);
+			} finally {
+				setNavigatorStatus(true);
+			}
+
+			const vehicles = await service.getVehicles(userId);
+			const fiat = vehicles.find((vehicle) => vehicle.name === VEHICLE_NAME);
+			expect(fiat).toBeDefined();
+			expect(fiat?.favorite).toBe(true);
+		});
 	});
 });

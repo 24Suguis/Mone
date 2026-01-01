@@ -30,7 +30,7 @@ const writeCache = (key: string, payload: unknown) => {
 
 const requireOnline = () => {
     if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
-        throw new Error("Se requiere conexión a internet para esta acción.");
+        throw new Error("DatabaseNotAvailableException");
     }
 };
 

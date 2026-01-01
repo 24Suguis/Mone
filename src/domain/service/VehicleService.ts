@@ -28,7 +28,7 @@ const writeCache = (key: string, payload: unknown) => {
 
 const requireOnline = () => {
     if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
-        throw new Error("Se requiere conexión a internet para esta acción.");
+        throw new Error("DatabaseNotAvailableException");
     }
 };
 
@@ -65,33 +65,33 @@ export class VehicleService {
         ownerId = this.resolveUserId(ownerId);
         const cacheKey = VEHICLE_CACHE_KEY(ownerId);
         const rawCache = readCache<{ data: Vehicle[] }>(cacheKey);
-        console.log("[VehicleService.getVehicles] rawCache:", rawCache);
+      //  console.log("[VehicleService.getVehicles] rawCache:", rawCache);
         const cached = rawCache?.data ?? null;
-        console.log("[VehicleService.getVehicles] cached (extracted .data):", cached);
+      //  console.log("[VehicleService.getVehicles] cached (extracted .data):", cached);
         const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
-        console.log("[VehicleService.getVehicles] offline:", offline);
+      //  console.log("[VehicleService.getVehicles] offline:", offline);
         if (offline) {
             if (cached) return cached;
             throw new Error("OfflineNoCache");
         }
         try {
             const list = await this.vehicleRepository.getVehiclesByOwnerId(ownerId);
-            console.log("[VehicleService.getVehicles] list from repo:", list);
+           
             const normalized = (Array.isArray(list) ? list : []).map((v: any) => ({
                 ...v,
                 favorite: Boolean(v?.favorite || v?.isFavorite),
                 isFavorite: Boolean(v?.favorite || v?.isFavorite),
             }));
-            console.log("[VehicleService.getVehicles] normalized:", normalized);
+          
             if (Array.isArray(normalized) && normalized.length === 0 && cached && cached.length > 0) {
                 // Avoid wiping cache if an offline/flaky fetch returned empty.
-                console.log("[VehicleService.getVehicles] returning cached (empty fetch fallback)");
+            //    console.log("[VehicleService.getVehicles] returning cached (empty fetch fallback)");
                 return cached;
             }
             writeCache(cacheKey, normalized);
             return normalized;
         } catch (err) {
-            console.error("[VehicleService.getVehicles] error:", err);
+        //    console.error("[VehicleService.getVehicles] error:", err);
             if (cached) return cached; // offline fallback
             throw err;
         }
