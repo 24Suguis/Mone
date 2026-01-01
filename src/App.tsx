@@ -13,15 +13,24 @@ import VehiclesPage from './view/vehicle/VehiclesPage'
 import SearchRoute from './view/Route/Searchroute'
 import RouteDetails from './view/Route/RouteDetails'
 import NewRoute from './view/Route/NewRoute'
+import ListRoutes from './view/Route/ListRoutes'
+import EditRoute from './view/Route/EditRoute'
 import Settings from './view/User/Settings'
 import { Home } from './view/home/Home'
 import { useAuth } from './core/context/AuthContext';
 import AppNav from './view/components/AppNav';
 import AppFooter from "./view/components/AppFooter";
 import { useEffect } from 'react';
+import { energyPriceGateway } from "./data/provider/EnergyPriceGateway";
 
 function App() {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    energyPriceGateway.prefetch().catch((err) => {
+      console.warn('Prefetch energy prices failed (app-level)', err);
+    });
+  }, []);
 
   if (loading) return null;
 
@@ -48,8 +57,11 @@ function App() {
             <Route path="/routedetails" element={<RouteDetails />} />
             <Route path="/newroute" element={<NewRoute />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/vehicles" element={<VehiclesPage />}></Route>
-
+            <Route path="/vehicles" element={<VehiclesPage />}/>
+            <Route path="/routes" element={<ListRoutes />}/>
+            <Route path="/routes/details/:routeId" element={<RouteDetails />} />
+            <Route path="/routes/new" element={<NewRoute />} />
+            <Route path="/routes/edit/:routeId" element={<EditRoute />} />
           </Route>
         </Route>
 
@@ -73,13 +85,21 @@ const RequireAuth = () => {
 
 
 
-const PrivateLayout = () => (
-  <>
-    <AppNav />
-    <main className="app-main"><Outlet /></main>
-    <AppFooter />
-  </>
-);
+const PrivateLayout = () => {
+  useEffect(() => {
+    energyPriceGateway.prefetch().catch((err) => {
+      console.warn('Prefetch energy prices failed', err);
+    });
+  }, []);
+
+  return (
+    <>
+      <AppNav />
+      <main className="app-main"><Outlet /></main>
+      <AppFooter />
+    </>
+  );
+};
 
 const NotFoundRedirect = () => {
   const navigate = useNavigate();

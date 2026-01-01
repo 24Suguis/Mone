@@ -1,14 +1,13 @@
-// filepath: c:\Users\ervig\Documents\Projecto App Maps Mone\ProjectMone\mone\src\components\SearchRoute.jsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useAuth } from "../../core/context/AuthContext";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import CustomSwal from "../../core/utils/CustomSwal";
 import LeafletMap from "../components/LeafletMap";
-import BackButton from "../components/BackButton";
 import SavedPlacesModal from "../components/SavedPlacesModal";
 import MobilitySelector from "../components/MobilitySelector";
 import RouteTypeSelector from "../components/RouteTypeSelector";
 import SelectVehicle from "../components/SelectVehicle";
 import LocationInput from "../components/LocationInput";
+import BackButton from "../components/BackButton";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 
@@ -24,26 +23,36 @@ const parseCoordsFromString = (text) => {
   return [lat, lng];
 };
 
-export default function SearchRoute() {
-  const { user } = useAuth?.() ?? { user: null };
-  const { loading, error: requestError, previewRoute: previewRouteVm, searchRoute, reset: resetRouteVm } = useRouteViewmodel();
+export default function EditRoute() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { state } = useLocation();
+
+  const {
+    loading: vmLoading,
+    error: requestError,
+    previewRoute,
+    reset: resetRouteVm,
+    getSavedRoute,
+    updateSavedRoute,
+  } = useRouteViewmodel();
 
   const [origin, setOrigin] = useState(() => createLocationState());
   const [destination, setDestination] = useState(() => createLocationState());
   const [name, setName] = useState("");
-  const [mobility, setMobility] = useState("vehicle");  // vehicle | bike | walk
+  const [mobility, setMobility] = useState("vehicle");
   const [selectedVehicle, setSelectedVehicle] = useState("");
-  const [routeType, setRouteType] = useState("fastest"); // fastest | shortest | scenic
+  const [routeType, setRouteType] = useState("fastest");
 
-  const [polyline, setPolyline] = useState([]); // [[lat,lng], ...]
-  const [center, setCenter] = useState(DEFAULT_CENTER); // default
+  const [polyline, setPolyline] = useState([]);
+  const [center, setCenter] = useState(DEFAULT_CENTER);
   const [error, setError] = useState("");
   const [hasPreview, setHasPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingRoute, setLoadingRoute] = useState(true);
 
-  // nuevo: modal / saved places
   const [showSavedModal, setShowSavedModal] = useState(false);
-  const [savedMode, setSavedMode] = useState("origin"); // "origin" | "destination"
+  const [savedMode, setSavedMode] = useState("origin");
 
   const mutateLocation = (key, updater) => {
     if (key === "origin") {
@@ -77,6 +86,7 @@ export default function SearchRoute() {
     const formatted = label ?? formatLatLng([lat, lng]);
     mutateLocation(key, () => ({ value: formatted, coords: [lat, lng], error: "" }));
   };
+
   const resolveCoords = (key, state) => {
     if (state.coords) return state.coords;
     const parsed = parseCoordsFromString(state.value);
@@ -168,7 +178,7 @@ export default function SearchRoute() {
     const payload = buildRouteRequest();
     if (!payload) return;
     try {
-      const preview = await previewRouteVm({
+      const preview = await previewRoute({
         origin: payload.origin,
         destination: payload.destination,
         mobilityType: mobility,
@@ -212,24 +222,23 @@ export default function SearchRoute() {
     setError("");
     setSaving(true);
     try {
-      await searchRoute({
+      await updateSavedRoute(id, {
+        name: trimmedName,
         origin: payload.origin,
         destination: payload.destination,
         mobilityType: mobility,
+        mobilityMethod: mobility,
         routeType,
-        userId: user?.uid ?? undefined,
-        name: trimmedName,
-        save: true,
       });
       await CustomSwal.fire({
-        title: "Route Saved",
+        title: "Route Updated",
         text: `"${trimmedName}" has been saved successfully.`,
         icon: "success",
         confirmButtonText: "Close",
       });
-      setHasPreview(false);
+      navigate("/routes");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to save route";
+      const message = err instanceof Error ? err.message : "Unable to update route";
       setError(message);
     } finally {
       setSaving(false);
@@ -262,85 +271,136 @@ export default function SearchRoute() {
         });
       }
     } catch (err) {
-      console.warn("NewRoute: unable to resolve toponym", err);
+      console.warn("EditRoute: unable to resolve toponym", err);
     }
   }, [mutateLocation]);
 
   const combinedError = error || requestError;
   const primaryButtonLabel = hasPreview
-    ? (loading || saving ? "Saving..." : "Save Route")
-    : (loading ? "Previewing..." : "Preview Route");
+    ? (vmLoading || saving ? "Saving..." : "Save changes")
+    : (vmLoading ? "Previewing..." : "Preview Route");
+
+  const hydrateFromRoute = (route) => {
+    setName(route?.name || "");
+    const mobilityFromRoute = route?.mobilityType || route?.mobilityMethod || "vehicle";
+    setMobility(mobilityFromRoute);
+    setRouteType(route?.routeType || "fastest");
+
+    const originValue = route?.origin || "";
+    const destValue = route?.destination || "";
+    const originCoords = parseCoordsFromString(originValue);
+    const destCoords = parseCoordsFromString(destValue);
+    setOrigin({ value: originValue, coords: originCoords, error: "" });
+    setDestination({ value: destValue, coords: destCoords, error: "" });
+    setCenter(originCoords || destCoords || DEFAULT_CENTER);
+  };
+
+  useEffect(() => {
+    const loadRoute = async () => {
+      setLoadingRoute(true);
+      setError("");
+      try {
+        const initial = state && typeof state === "object" ? state : null;
+        const fetched = await getSavedRoute(id);
+        const route = fetched ?? initial;
+        if (!route) {
+          throw new Error("Route not found");
+        }
+        hydrateFromRoute(route);
+      } catch (err) {
+        const fallback = state && typeof state === "object" ? state : null;
+        if (fallback) {
+          hydrateFromRoute(fallback);
+        } else {
+          setError(err?.message || "Unable to load route");
+        }
+      } finally {
+        setLoadingRoute(false);
+      }
+    };
+    loadRoute();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   return (
     <section className="place-row">
       <aside className="place-card default-container with-border">
         <BackButton label="Back" style={{ marginBottom: "0.25rem" }} />
-        <h2 className="card-title">Save Route</h2>
+        <h2 className="card-title">Edit Route</h2>
 
-        <form onSubmit={handleFormSubmit} className="stack">
+        {combinedError && (
+          <p className="error-text" style={{ marginBottom: "0.75rem" }}>
+            {combinedError}
+          </p>
+        )}
+
+        {loadingRoute ? (
+          <div className="item-card item-card--empty">Loading route...</div>
+        ) : (
+          <form onSubmit={handleFormSubmit} className="stack">
             <div className="form-row field-row">
-            <label htmlFor="name">Name</label>
-            <div className="input-with-btn">
-              <input
-                id="name"
-                type="text"
-                placeholder="Enter a route name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+              <label htmlFor="name">Name</label>
+              <div className="input-with-btn">
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Enter a route name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <LocationInput
+              label="Origin"
+              value={origin.value}
+              onChange={(next) => handleLocationValueChange("origin", next)}
+              onCoordsChange={(coords, label) => handleLocationCoordsChange("origin", coords, label)}
+              onRequestSavedPlaces={() => openSavedModal("origin")}
+              externalError={origin.error}
+              placeholder="Enter a place or coordinates"
+            />
+
+            <LocationInput
+              label="Destination"
+              value={destination.value}
+              onChange={(next) => handleLocationValueChange("destination", next)}
+              onCoordsChange={(coords, label) => handleLocationCoordsChange("destination", coords, label)}
+              onRequestSavedPlaces={() => openSavedModal("destination")}
+              externalError={destination.error}
+              placeholder="Enter a place or coordinates"
+            />
+
+            <div className="form-row">
+              <label>Mobility method</label>
+              <MobilitySelector value={mobility} onChange={(v) => { setMobility(v); invalidatePreview(); }} />
+
+              <SelectVehicle
+                mobility={mobility}
+                value={selectedVehicle}
+                onChange={(v) => { setSelectedVehicle(v); invalidatePreview(); }}
               />
             </div>
-          </div>
-          <LocationInput
-            label="Origin"
-            value={origin.value}
-            onChange={(next) => handleLocationValueChange("origin", next)}
-            onCoordsChange={(coords, label) => handleLocationCoordsChange("origin", coords, label)}
-            onRequestSavedPlaces={() => openSavedModal("origin")}
-            externalError={origin.error}
-            placeholder="Enter a place or coordinates"
-          />
 
-          <LocationInput
-            label="Destination"
-            value={destination.value}
-            onChange={(next) => handleLocationValueChange("destination", next)}
-            onCoordsChange={(coords, label) => handleLocationCoordsChange("destination", coords, label)}
-            onRequestSavedPlaces={() => openSavedModal("destination")}
-            externalError={destination.error}
-            placeholder="Enter a place or coordinates"
-          />
+            <div className="form-row">
+              <label htmlFor="routeType">Route type</label>
+              <RouteTypeSelector id="routeType" value={routeType} onChange={(v) => { setRouteType(v); invalidatePreview(); }} />
+            </div>
 
-          <div className="form-row">
-            <label>Mobility method</label>
-            <MobilitySelector value={mobility} onChange={(v) => { setMobility(v); invalidatePreview(); }} />
-
-            <SelectVehicle
-              mobility={mobility}
-              value={selectedVehicle}
-              onChange={(v) => { setSelectedVehicle(v); invalidatePreview(); }}
-            />
-          </div>
-
-          <div className="form-row">
-            <label htmlFor="routeType">Route type</label>
-            <RouteTypeSelector id="routeType" value={routeType} onChange={(v) => { setRouteType(v); invalidatePreview(); }} />
-          </div>
-
-          <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
-            <button type="submit" className="btn btn-primary" disabled={loading || saving}>
-              {primaryButtonLabel}
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={handleReset}
-            >
-              Reset
-            </button>
-          </div>
-
-          {combinedError && <p className="error-text">{combinedError}</p>}
-        </form>
+            <div style={{ display: "flex", gap: "0.6rem", marginTop: "0.4rem" }}>
+              <button type="submit" className="btn btn-primary" disabled={vmLoading || saving}>
+                {primaryButtonLabel}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={handleReset}
+              >
+                Reset
+              </button>
+            </div>
+          </form>
+        )}
 
         <SavedPlacesModal
           open={showSavedModal}
@@ -370,7 +430,7 @@ export default function SearchRoute() {
               mutateLocation("destination", () => createLocationState());
             }
           }}
-          style={{ minHeight: 520 }} // opcional, control de tamaño desde aquí
+          style={{ minHeight: 520 }}
         />
       </main>
     </section>
