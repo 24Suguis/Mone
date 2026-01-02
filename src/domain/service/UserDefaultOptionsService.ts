@@ -1,21 +1,12 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../../core/config/firebaseConfig";
 import { VehicleService } from "./VehicleService";
-
-export type TransportMode = "vehicle" | "bike" | "walk";
-export type RouteTypeOption = "fastest" | "shortest" | "scenic";
-
-export interface UserDefaultOptions {
-    transportMode: TransportMode;
-    routeType: RouteTypeOption;
-    vehicleName: string | null;
-}
-
-const DEFAULT_OPTIONS: UserDefaultOptions = {
-    transportMode: "vehicle",
-    routeType: "fastest",
-    vehicleName: null,
-};
+import {
+    DEFAULT_USER_DEFAULT_OPTIONS,
+    type TransportMode,
+    type RouteTypeOption,
+    type UserDefaultOptions,
+} from "../model/UserDefaultOptions";
+import type { UserDefaultOptionsRepositoryInterface } from "../repository/UserDefaultOptionsRepositoryInterface";
+import { UserDefaultOptionsRepository } from "../../data/repository/UserDefaultOptionsRepository";
 
 const requireOnline = () => {
     if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
@@ -56,16 +47,20 @@ const ensureVehicleExists = async (userId: string, vehicleName: string): Promise
 };
 
 export class UserDefaultOptionsService {
+    private repository: UserDefaultOptionsRepositoryInterface;
+
+    constructor(repository?: UserDefaultOptionsRepositoryInterface) {
+        this.repository = repository ?? new UserDefaultOptionsRepository();
+    }
+
     async get(userId: string): Promise<UserDefaultOptions> {
         if (!userId) throw new Error("User id is required");
-        const ref = doc(db, "users", userId);
-        const snapshot = await getDoc(ref);
-        const raw = snapshot.exists() ? snapshot.data().defaultOptions : undefined;
+        const raw = await this.repository.getDefaultOptions(userId);
 
         return {
-            transportMode: normalizeTransportMode(raw?.transportMode) ?? DEFAULT_OPTIONS.transportMode,
-            routeType: normalizeRouteType(raw?.routeType) ?? DEFAULT_OPTIONS.routeType,
-            vehicleName: sanitizeVehicleName(raw?.vehicleName) ?? DEFAULT_OPTIONS.vehicleName,
+            transportMode: normalizeTransportMode(raw?.transportMode) ?? DEFAULT_USER_DEFAULT_OPTIONS.transportMode,
+            routeType: normalizeRouteType(raw?.routeType) ?? DEFAULT_USER_DEFAULT_OPTIONS.routeType,
+            vehicleName: sanitizeVehicleName(raw?.vehicleName) ?? DEFAULT_USER_DEFAULT_OPTIONS.vehicleName,
         };
     }
 
@@ -107,10 +102,6 @@ export class UserDefaultOptionsService {
                     : current.vehicleName,
         };
 
-        await setDoc(
-            doc(db, "users", userId),
-            { defaultOptions: payload },
-            { merge: true }
-        );
+        await this.repository.saveDefaultOptions(userId, payload);
     }
 }

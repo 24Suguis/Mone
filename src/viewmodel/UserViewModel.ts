@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { UserService } from "../domain/service/UserService";
 import { UserSession } from "../domain/session/UserSession";
-import { UserPreferencesService, type UserPreferences } from "../domain/service/UserPreferencesService";
-import {
-  UserDefaultOptionsService,
-  type UserDefaultOptions,
-} from "../domain/service/UserDefaultOptionsService";
+import { UserPreferencesService } from "../domain/service/UserPreferencesService";
+import { UserDefaultOptionsService } from "../domain/service/UserDefaultOptionsService";
+import type { UserPreferences } from "../domain/model/UserPreferences";
+import type { UserDefaultOptions } from "../domain/model/UserDefaultOptions";
 
 // helper para obtener la instancia cuando la necesitamos (no cacheada a nivel módulo)
 const getSvc = () => UserService.getInstance();
