@@ -10,6 +10,9 @@ import { useAuth } from "../../core/context/AuthContext";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 import BackButton from "../components/BackButton";
+import {
+    getUserDefaultOptions,
+} from "../../viewmodel/UserViewModel";
 const DEFAULT_CENTER = [39.99256, -0.067387];
 
 const normalizeMobilityKey = (mode) => {
@@ -174,6 +177,15 @@ export default function RouteDetails() {
   const baseRoute = activePlan?.baseRoute;
   const priceSnapshot = activePlan?.priceSnapshot;
   const preferences = activePlan?.preferences;
+  const [defaultVehicleName, setDefaultVehicleName] = useState("");
+  useEffect(() => {
+    const loadPrefs = async () => {
+      const data = await getUserDefaultOptions();
+      setDefaultVehicleName(data?.vehicleName ?? ""); //solo nos interesa el vehiculo y no el tipo de movilidad o el tipo de ruta porque estas dos se arrastran de la pantalla Explore
+    };
+    loadPrefs();
+  }, []);
+
   const resolvedMobility = route?.mobilityType ?? "vehicle";
   const resolvedRouteType = route?.routeType ?? "fastest";
   const [selectedMobility, setSelectedMobility] = useState(resolvedMobility);
@@ -281,6 +293,16 @@ export default function RouteDetails() {
     });
     return map;
   }, [vehicleOptions]);
+
+  useEffect(() => {
+    if (!defaultVehicleName) return;
+    const match = vehicleOptions.find(
+      (option) => option.name === defaultVehicleName && option.mobility === resolvedMobility
+    );
+    if (match && match.id !== selectedVehicleId) {
+      setSelectedVehicleId(match.id);
+    }
+  }, [defaultVehicleName, vehicleOptions, resolvedMobility, selectedVehicleId]);
 
   useEffect(() => {
     const isDefaultSelection = typeof selectedVehicleId === "string" && selectedVehicleId.startsWith("default-");
