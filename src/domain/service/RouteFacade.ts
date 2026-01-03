@@ -148,6 +148,16 @@ export class RouteFacade {
     ): Promise<RouteResponse> {
         const plan = await this.requestRoute(options, vehicle);
         const resolvedUserId = this.resolveUserId(options.userId);
+        const vehicleSnapshot = vehicle
+            ? {
+                name: vehicle.name,
+                type: (vehicle as any)?.type ?? null,
+                fuelType: (vehicle as any)?.fuelType ?? null,
+                consumption: (vehicle as any)?.consumption ?? null,
+                favorite: (vehicle as any)?.favorite ?? undefined,
+            }
+            : null;
+
         await this.service.saveRoute({
         origin: options.origin,
         destination: options.destination,
@@ -157,6 +167,7 @@ export class RouteFacade {
         routeType: options.routeType,
         name: options.name,
         userId: resolvedUserId,
+        vehicle: vehicleSnapshot,
         });
         return plan;
     }

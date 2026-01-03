@@ -224,6 +224,11 @@ export default function RouteDetails() {
   const savedRouteFromState = location.state?.savedRoute;
   const initialRoutePlan = location.state?.routePlan;
   const initialSearchMeta = location.state?.searchMeta;
+  const [savedVehicleSnapshot, setSavedVehicleSnapshot] = useState(savedRouteFromState?.vehicle ?? null);
+  const savedVehicleMobility = useMemo(
+    () => (savedVehicleSnapshot ? normalizeMobilityKey(inferMobilityFromVehicle(savedVehicleSnapshot)) : null),
+    [savedVehicleSnapshot]
+  );
 
   const [activePlan, setActivePlan] = useState(initialRoutePlan ?? null);
   const [searchMeta, setSearchMeta] = useState(initialSearchMeta ?? null);
@@ -368,11 +373,15 @@ export default function RouteDetails() {
     setSavedRouteError("");
     try {
       let savedRoute = savedRouteCandidate;
-      if (!savedRoute) {
+      if (!savedRoute || !savedRoute.vehicle) {
         savedRoute = await getSavedRoute(routeId, user?.uid);
       }
       if (!savedRoute) {
         throw new Error("Saved route not found");
+      }
+
+      if (savedRoute.vehicle) {
+        setSavedVehicleSnapshot(savedRoute.vehicle);
       }
 
       const normalizedMobility = savedRoute.mobilityType || savedRoute.mobilityMethod || "vehicle";
@@ -385,6 +394,7 @@ export default function RouteDetails() {
         routeType: normalizedRouteType,
         userId: user?.uid,
         name: savedRoute.name,
+        vehicle: savedRoute.vehicle ?? undefined,
       });
 
       setActivePlan(response);
@@ -426,13 +436,41 @@ export default function RouteDetails() {
     });
   }, [vehicles]);
 
+  const savedVehicleOption = useMemo(() => {
+    if (!savedVehicleSnapshot || !savedVehicleMobility) return null;
+    const existing = vehicleOptions.find((opt) => opt.name === savedVehicleSnapshot.name || opt.ref?.name === savedVehicleSnapshot.name);
+    if (existing) return existing;
+    return {
+      id: `saved-${savedVehicleMobility}-${savedVehicleSnapshot.name || "vehicle"}`,
+      name: savedVehicleSnapshot.name || "Saved vehicle",
+      mobility: savedVehicleMobility,
+      favorite: Boolean(savedVehicleSnapshot.favorite),
+      ref: savedVehicleSnapshot,
+    };
+  }, [savedVehicleSnapshot, savedVehicleMobility, vehicleOptions]);
+
   const vehicleLookup = useMemo(() => {
     const map = new Map();
     vehicleOptions.forEach((option) => {
       map.set(option.id, option.ref);
     });
+    if (savedVehicleOption) {
+      map.set(savedVehicleOption.id, savedVehicleOption.ref);
+    }
     return map;
-  }, [vehicleOptions]);
+  }, [vehicleOptions, savedVehicleOption]);
+
+  // Try to preselect the vehicle saved with the route by matching its name
+  useEffect(() => {
+    if (!savedVehicleSnapshot || !savedVehicleMobility) return;
+    const match = vehicleOptions.find(
+      (option) => option.name === savedVehicleSnapshot.name || option.ref?.name === savedVehicleSnapshot.name
+    );
+    const targetId = match ? match.id : savedVehicleOption?.id;
+    if (targetId) {
+      setSelectedVehicleId((prev) => (prev ? prev : targetId));
+    }
+  }, [savedVehicleSnapshot, savedVehicleMobility, vehicleOptions, savedVehicleOption]);
 
   useEffect(() => {
     const isDefaultSelection = typeof selectedVehicleId === "string" && selectedVehicleId.startsWith("default-");
@@ -442,23 +480,32 @@ export default function RouteDetails() {
   }, [selectedVehicleId, vehicleLookup]);
 
   const selectedVehicle = useMemo(() => {
-    if (!selectedVehicleId) return null;
-    return vehicleLookup.get(selectedVehicleId) ?? null;
-  }, [selectedVehicleId, vehicleLookup]);
+    if (selectedVehicleId) {
+      const found = vehicleLookup.get(selectedVehicleId);
+      if (found) return found;
+    }
+    // Fallback to the vehicle stored with the saved route (snapshot)
+    if (savedVehicleSnapshot) return savedVehicleSnapshot;
+    return null;
+  }, [selectedVehicleId, vehicleLookup, savedVehicleSnapshot]);
 
   const fetchVehiclesForMode = useCallback(
     async (mode) => {
       const normalized = normalizeMobilityKey(mode);
-      return vehicleOptions
-        .filter((option) => option.mobility === normalized)
-        .map((option) => ({
-          id: option.id,
-          name: option.name,
-          favorite: option.favorite,
-          meta: formatVehicleConsumptionDisplay(option.ref) ?? undefined,
-        }));
+      const base = vehicleOptions.filter((option) => option.mobility === normalized);
+      const list = [...base];
+      if (savedVehicleOption && savedVehicleOption.mobility === normalized) {
+        const already = list.some((opt) => opt.name === savedVehicleOption.name);
+        if (!already) list.push(savedVehicleOption);
+      }
+      return list.map((option) => ({
+        id: option.id,
+        name: option.name,
+        favorite: option.favorite,
+        meta: formatVehicleConsumptionDisplay(option.ref) ?? undefined,
+      }));
     },
-    [vehicleOptions]
+    [vehicleOptions, savedVehicleOption]
   );
 
   const originPoint = searchMeta?.origin;
@@ -467,7 +514,7 @@ export default function RouteDetails() {
   const triggerReroute = useCallback(
     async (mobilityValue, routeTypeValue, vehicleIdValue) => {
       if (!originPoint || !destinationPoint) return;
-      const vehicle = vehicleIdValue ? vehicleLookup.get(vehicleIdValue) : undefined;
+      const vehicle = vehicleIdValue ? vehicleLookup.get(vehicleIdValue) : savedVehicleSnapshot;
       const requestId = Date.now();
       latestRequestRef.current = requestId;
       setRerouteError(null);
@@ -490,7 +537,7 @@ export default function RouteDetails() {
         }
       }
     },
-    [originPoint, destinationPoint, searchRoute, user?.uid, vehicleLookup]
+    [originPoint, destinationPoint, searchRoute, user?.uid, vehicleLookup, savedVehicleSnapshot]
   );
   const resolvedConsumptionDisplay = useMemo(() => {
     if (selectedVehicle) {

@@ -7,6 +7,7 @@ export interface RouteSavedDTO {
 	destinationLabel?: string;
 	mobilityType: string;
 	mobilityMethod: string;
+	vehicle?: any;
 	routeType: string;
 	createdAt?: Date;
 }

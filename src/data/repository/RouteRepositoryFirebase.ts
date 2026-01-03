@@ -21,6 +21,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
       destinationLabel: payload.destinationLabel ?? null,
       mobilityType: payload.mobilityType,
       mobilityMethod: payload.mobilityMethod,
+      vehicle: payload.vehicle ?? null,
       routeType: payload.routeType,
       favorite: Boolean((payload as any)?.favorite),
       createdAt: serverTimestamp(),
@@ -66,6 +67,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
       destinationLabel: data.destinationLabel ?? undefined,
       mobilityType: data.mobilityType,
       mobilityMethod: data.mobilityMethod,
+      vehicle: data.vehicle ?? undefined,
       routeType: data.routeType,
       favorite: Boolean(data.favorite),
       createdAt: data.createdAt?.toDate?.() ?? new Date(),
@@ -92,6 +94,7 @@ export class RouteRepositoryFirebase implements RouteRepository {
     if ((payload as any)?.destinationLabel !== undefined) updatePayload.destinationLabel = (payload as any).destinationLabel ?? null;
     if (payload.mobilityType !== undefined) updatePayload.mobilityType = payload.mobilityType;
     if ((payload as any)?.mobilityMethod !== undefined) updatePayload.mobilityMethod = (payload as any).mobilityMethod;
+    if ((payload as any)?.vehicle !== undefined) updatePayload.vehicle = (payload as any).vehicle ?? null;
     if (payload.routeType !== undefined) updatePayload.routeType = payload.routeType;
     if ((payload as any)?.favorite !== undefined) updatePayload.favorite = Boolean((payload as any).favorite);
 

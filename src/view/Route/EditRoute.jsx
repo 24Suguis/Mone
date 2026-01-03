@@ -62,7 +62,7 @@ const formatVehicleConsumptionDisplay = (vehicle) => {
 };
 
 export default function EditRoute() {
-  const { id } = useParams();
+  const { routeId } = useParams();
   const navigate = useNavigate();
   const { state } = useLocation();
 
@@ -82,6 +82,7 @@ export default function EditRoute() {
   const [name, setName] = useState("");
   const [mobility, setMobility] = useState("vehicle");
   const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [initialVehicleName, setInitialVehicleName] = useState("");
   const [routeType, setRouteType] = useState("fastest");
 
   const [polyline, setPolyline] = useState([]);
@@ -262,10 +263,19 @@ export default function EditRoute() {
     }
     const originLabel = origin.value || payload.origin;
     const destinationLabel = destination.value || payload.destination;
+    const vehicleSnapshot = selectedVehicleRef
+      ? {
+          name: selectedVehicleRef.name,
+          type: selectedVehicleRef.type ?? null,
+          fuelType: selectedVehicleRef.fuelType ?? null,
+          consumption: selectedVehicleRef.consumption ?? null,
+          favorite: selectedVehicleRef.favorite ?? undefined,
+        }
+      : null;
     setError("");
     setSaving(true);
     try {
-      await updateSavedRoute(id, {
+      await updateSavedRoute(routeId, {
         name: trimmedName,
         origin: payload.origin,
         destination: payload.destination,
@@ -273,8 +283,8 @@ export default function EditRoute() {
         destinationLabel,
         mobilityType: mobility,
         mobilityMethod: mobility,
+        vehicle: vehicleSnapshot,
         routeType,
-        vehicle: selectedVehicleRef ?? undefined,
       });
       await CustomSwal.fire({
         title: "Route Updated",
@@ -378,6 +388,7 @@ export default function EditRoute() {
     const mobilityFromRoute = route?.mobilityType || route?.mobilityMethod || "vehicle";
     setMobility(mobilityFromRoute);
     setRouteType(route?.routeType || "fastest");
+    setInitialVehicleName(route?.vehicle?.name || "");
 
     const originValue = route?.origin || "";
     const destValue = route?.destination || "";
@@ -389,12 +400,20 @@ export default function EditRoute() {
   };
 
   useEffect(() => {
+    if (!initialVehicleName) return;
+    const match = vehicleOptions.find((option) => option.ref?.name === initialVehicleName || option.name === initialVehicleName);
+    if (match) {
+      setSelectedVehicle(match.id);
+    }
+  }, [initialVehicleName, vehicleOptions]);
+
+  useEffect(() => {
     const loadRoute = async () => {
       setLoadingRoute(true);
       setError("");
       try {
         const initial = state && typeof state === "object" ? state : null;
-        const fetched = await getSavedRoute(id);
+        const fetched = await getSavedRoute(routeId);
         const route = fetched ?? initial;
         if (!route) {
           throw new Error("Route not found");
@@ -413,7 +432,7 @@ export default function EditRoute() {
     };
     loadRoute();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [routeId]);
 
   return (
     <section className="place-row">

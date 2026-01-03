@@ -62,6 +62,7 @@ export interface SaveRouteOptions extends BaseRouteOptions {
 	userId?: string;
     originLabel?: string;
     destinationLabel?: string;
+    vehicle?: any;
 }
 
 export class RouteService {
@@ -140,6 +141,7 @@ export class RouteService {
             destinationLabel: options.destinationLabel,
             mobilityType: options.mobilityType,
             mobilityMethod: options.mobilityType,
+            vehicle: options.vehicle,
             routeType: options.routeType,
         };
         const id = await this.repository.saveRoute(userId, payload);
