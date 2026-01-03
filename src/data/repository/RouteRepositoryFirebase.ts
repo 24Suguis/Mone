@@ -17,6 +17,8 @@ export class RouteRepositoryFirebase implements RouteRepository {
       name: routeName,
       origin: payload.origin,
       destination: payload.destination,
+      originLabel: payload.originLabel ?? null,
+      destinationLabel: payload.destinationLabel ?? null,
       mobilityType: payload.mobilityType,
       mobilityMethod: payload.mobilityMethod,
       routeType: payload.routeType,
@@ -60,6 +62,8 @@ export class RouteRepositoryFirebase implements RouteRepository {
       name: data.name,
       origin: data.origin,
       destination: data.destination,
+      originLabel: data.originLabel ?? undefined,
+      destinationLabel: data.destinationLabel ?? undefined,
       mobilityType: data.mobilityType,
       mobilityMethod: data.mobilityMethod,
       routeType: data.routeType,
@@ -84,6 +88,8 @@ export class RouteRepositoryFirebase implements RouteRepository {
 
     if (payload.origin !== undefined) updatePayload.origin = payload.origin;
     if (payload.destination !== undefined) updatePayload.destination = payload.destination;
+    if ((payload as any)?.originLabel !== undefined) updatePayload.originLabel = (payload as any).originLabel ?? null;
+    if ((payload as any)?.destinationLabel !== undefined) updatePayload.destinationLabel = (payload as any).destinationLabel ?? null;
     if (payload.mobilityType !== undefined) updatePayload.mobilityType = payload.mobilityType;
     if ((payload as any)?.mobilityMethod !== undefined) updatePayload.mobilityMethod = (payload as any).mobilityMethod;
     if (payload.routeType !== undefined) updatePayload.routeType = payload.routeType;

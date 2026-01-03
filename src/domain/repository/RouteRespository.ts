@@ -3,6 +3,8 @@ export interface RouteSavedDTO {
 	name?: string;
 	origin: string;
 	destination: string;
+	originLabel?: string;
+	destinationLabel?: string;
 	mobilityType: string;
 	mobilityMethod: string;
 	routeType: string;

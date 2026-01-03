@@ -9,6 +9,7 @@ import RouteTypeSelector from "../components/RouteTypeSelector";
 import { useAuth } from "../../core/context/AuthContext";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
+import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import BackButton from "../components/BackButton";
 const DEFAULT_CENTER = [39.99256, -0.067387];
 
@@ -32,6 +33,72 @@ const parseLatLng = (value) => {
     .map((piece) => parseFloat(piece.trim()));
   if (parts.length !== 2 || parts.some((n) => Number.isNaN(n))) return null;
   return [parts[0], parts[1]];
+};
+
+const toRadians = (deg) => (deg * Math.PI) / 180;
+const distanceMeters = (a, b) => {
+  if (!a || !b) return Infinity;
+  const R = 6371000;
+  const dLat = toRadians(b[0] - a[0]);
+  const dLon = toRadians(b[1] - a[1]);
+  const lat1 = toRadians(a[0]);
+  const lat2 = toRadians(b[0]);
+  const sinLat = Math.sin(dLat / 2);
+  const sinLon = Math.sin(dLon / 2);
+  const h = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon;
+  return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+};
+
+const normalizePlaceRecord = (place) => {
+  if (!place) return null;
+  const coordsCandidate = Array.isArray(place.coords)
+    ? place.coords
+    : Array.isArray(place.latitude)
+      ? place.latitude
+      : [Number(place.latitude ?? place.lat ?? place.latitude), Number(place.longitude ?? place.lng ?? place.longitude)];
+  const lat = Number(coordsCandidate?.[0]);
+  const lng = Number(coordsCandidate?.[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const label = place.name || place.label || place.toponymicAddress || undefined;
+  return { ...place, coords: [lat, lng], label };
+};
+
+const findNearestPlaceLabel = (coords, places, maxMeters = 75) => {
+  if (!Array.isArray(places)) return null;
+  let best = null;
+  for (const p of places) {
+    if (!Array.isArray(p?.coords)) continue;
+    const dist = distanceMeters(coords, p.coords);
+    if (dist <= maxMeters) {
+      best = p.label || p.name || p.toponymicAddress;
+      break;
+    }
+  }
+  return best;
+};
+
+const LABEL_CACHE_KEY = "mone.route.toponyms";
+
+const readLabelCache = () => {
+  try {
+    const raw = localStorage.getItem(LABEL_CACHE_KEY);
+    if (!raw) return { coords: {}, routes: {} };
+    const parsed = JSON.parse(raw);
+    return {
+      coords: parsed?.coords && typeof parsed.coords === "object" ? parsed.coords : {},
+      routes: parsed?.routes && typeof parsed.routes === "object" ? parsed.routes : {},
+    };
+  } catch {
+    return { coords: {}, routes: {} };
+  }
+};
+
+const persistLabelCache = (cache) => {
+  try {
+    localStorage.setItem(LABEL_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    /* ignore storage failures */
+  }
 };
 
 const formatDuration = (minutes) => {
@@ -181,6 +248,9 @@ export default function RouteDetails() {
   const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [rerouteError, setRerouteError] = useState(null);
   const latestRequestRef = useRef(0);
+  const [savedPlaces, setSavedPlaces] = useState([]);
+  const [locationLabels, setLocationLabels] = useState({ origin: null, destination: null });
+  const labelCacheRef = useRef(readLabelCache());
 
   const { vehicles } = vehicleViewmodel;
 
@@ -195,8 +265,90 @@ export default function RouteDetails() {
   }, [activePlan]);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const results = await placeViewmodel.getPlaces();
+        if (cancelled) return;
+        const normalized = Array.isArray(results)
+          ? results.map((p) => normalizePlaceRecord(p)).filter(Boolean)
+          : [];
+        setSavedPlaces(normalized);
+      } catch {
+        if (!cancelled) setSavedPlaces([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     setSelectedVehicleId("");
   }, [selectedMobility]);
+
+  const resolveLocationLabel = useCallback(
+    async (raw, routeId, field) => {
+      if (!raw) return null;
+      const coords = parseLatLng(raw);
+      if (!coords) return raw;
+
+      const routeCache = labelCacheRef.current.routes?.[routeId]?.[field];
+      if (routeCache) return routeCache;
+
+      const cacheKey = `${coords[0].toFixed(5)},${coords[1].toFixed(5)}`;
+      const cached = labelCacheRef.current.coords?.[cacheKey];
+      if (cached) return cached;
+
+      const savedLabel = findNearestPlaceLabel(coords, savedPlaces);
+      if (savedLabel) {
+        const next = { ...labelCacheRef.current };
+        next.coords = { ...next.coords, [cacheKey]: savedLabel };
+        if (routeId) {
+          next.routes = {
+            ...next.routes,
+            [routeId]: { ...(next.routes?.[routeId] || {}), [field]: savedLabel },
+          };
+        }
+        labelCacheRef.current = next;
+        persistLabelCache(next);
+        return savedLabel;
+      }
+
+      try {
+        const suggestion = await placeViewmodel.toponymFromCoords(coords[0], coords[1]);
+        const label = suggestion?.label || raw;
+        const next = { ...labelCacheRef.current };
+        next.coords = { ...next.coords, [cacheKey]: label };
+        if (routeId) {
+          next.routes = {
+            ...next.routes,
+            [routeId]: { ...(next.routes?.[routeId] || {}), [field]: label },
+          };
+        }
+        labelCacheRef.current = next;
+        persistLabelCache(next);
+        return label;
+      } catch {
+        return raw;
+      }
+    },
+    [savedPlaces]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const originLabel = await resolveLocationLabel(searchMeta?.origin, routeId || "", "origin");
+      const destinationLabel = await resolveLocationLabel(searchMeta?.destination, routeId || "", "destination");
+      if (cancelled) return;
+      setLocationLabels({ origin: originLabel, destination: destinationLabel });
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchMeta?.origin, searchMeta?.destination, resolveLocationLabel]);
 
   const goBackToList = useCallback(() => {
     try {
@@ -414,8 +566,10 @@ export default function RouteDetails() {
     return markers;
   }, [searchMeta]);
 
-  const resolvedOriginLabel = searchMeta?.originLabel ?? searchMeta?.origin ?? "—";
-  const resolvedDestinationLabel = searchMeta?.destinationLabel ?? searchMeta?.destination ?? "—";
+  const resolvedOriginLabel =
+    locationLabels.origin ?? searchMeta?.originLabel ?? searchMeta?.origin ?? route?.originLabel ?? route?.origin ?? "—";
+  const resolvedDestinationLabel =
+    locationLabels.destination ?? searchMeta?.destinationLabel ?? searchMeta?.destination ?? route?.destinationLabel ?? route?.destination ?? "—";
 
   const markers = useMemo(() => {
     if (routePolyline.length >= 2) {
@@ -464,6 +618,8 @@ export default function RouteDetails() {
         await RouteService.getInstance().saveRoute({
           origin: originStr,
           destination: destinationStr,
+          originLabel: resolvedOriginLabel,
+          destinationLabel: resolvedDestinationLabel,
           mobilityType: route?.mobilityType ?? "vehicle",
           routeType: route?.routeType ?? "fastest",
           name: finalName,

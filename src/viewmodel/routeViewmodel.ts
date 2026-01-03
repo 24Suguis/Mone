@@ -20,6 +20,8 @@ export interface RouteSearchOptions {
 	userId?: string;
 	name?: string;
 	save?: boolean;
+	originLabel?: string;
+	destinationLabel?: string;
 	vehicle?: Vehicle;
 }
 
@@ -72,6 +74,8 @@ const createDefaultVehicle = (mode: string): Vehicle => {
 interface NormalizedRouteContext {
 	origin: string;
 	destination: string;
+	originLabel?: string;
+	destinationLabel?: string;
 	mobilityType: string;
 	routeType: string;
 	userId?: string;
@@ -83,6 +87,8 @@ interface NormalizedRouteContext {
 const normalizeRouteOptions = (options: RouteSearchOptions): NormalizedRouteContext => {
 	const origin = sanitizeValue(options.origin);
 	const destination = sanitizeValue(options.destination);
+		const originLabel = sanitizeValue(options.originLabel ?? undefined) || undefined;
+		const destinationLabel = sanitizeValue(options.destinationLabel ?? undefined) || undefined;
 	const mobilityType = sanitizeValue(options.mobilityType) || "vehicle";
 	const routeType = sanitizeValue(options.routeType) || "fastest";
 	const userId = sanitizeValue(options.userId ?? undefined) || undefined;
@@ -92,6 +98,8 @@ const normalizeRouteOptions = (options: RouteSearchOptions): NormalizedRouteCont
 	return {
 		origin,
 		destination,
+			originLabel,
+			destinationLabel,
 		mobilityType,
 		routeType,
 		userId,
@@ -148,6 +156,8 @@ export const useRouteViewmodel = (): RouteViewmodelState => {
 				const basePayload = {
 					origin: context.origin,
 					destination: context.destination,
+					originLabel: context.originLabel,
+					destinationLabel: context.destinationLabel,
 					mobilityType: context.mobilityType,
 					routeType: context.routeType,
 					userId: context.userId,

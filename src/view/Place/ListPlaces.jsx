@@ -130,7 +130,19 @@ export default function ListPlaces({ onAddPlace, onEditPlace, className = "" }) 
   );
 
   const renderCard = (place) => (
-    <li key={place.id ?? `${place.latitude}-${place.longitude}`} className="item-card">
+    <li
+      key={place.id ?? `${place.latitude}-${place.longitude}`}
+      className="item-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => place?.id && navigate(`/places/view/${place.id}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (place?.id) navigate(`/places/view/${place.id}`);
+        }
+      }}
+    >
       <div className="item-card__icon" aria-hidden>
         {cardIcon}
       </div>

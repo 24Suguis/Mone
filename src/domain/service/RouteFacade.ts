@@ -143,7 +143,7 @@ export class RouteFacade {
     }
 
     async requestAndSaveRoute(
-        options: RouteRequestOptions & { userId?: string; name: string },
+        options: RouteRequestOptions & { userId?: string; name: string; originLabel?: string; destinationLabel?: string },
         vehicle?: Vehicle
     ): Promise<RouteResponse> {
         const plan = await this.requestRoute(options, vehicle);
@@ -151,6 +151,8 @@ export class RouteFacade {
         await this.service.saveRoute({
         origin: options.origin,
         destination: options.destination,
+        originLabel: options.originLabel,
+        destinationLabel: options.destinationLabel,
         mobilityType: options.mobilityType,
         routeType: options.routeType,
         name: options.name,

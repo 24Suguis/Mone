@@ -60,6 +60,8 @@ export interface RouteServiceDeps {
 export interface SaveRouteOptions extends BaseRouteOptions {
 	name: string;
 	userId?: string;
+    originLabel?: string;
+    destinationLabel?: string;
 }
 
 export class RouteService {
@@ -134,6 +136,8 @@ export class RouteService {
             name: trimmedName,
             origin: options.origin,
             destination: options.destination,
+            originLabel: options.originLabel,
+            destinationLabel: options.destinationLabel,
             mobilityType: options.mobilityType,
             mobilityMethod: options.mobilityType,
             routeType: options.routeType,
