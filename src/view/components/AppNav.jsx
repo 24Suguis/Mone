@@ -18,22 +18,25 @@ export const AppNav = () => {
 
   return (
     <nav className="font-semibold" style={{ color: "#CCD5B9", backgroundColor: "#585233", position: "relative", zIndex: 9999 }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="w-full px-4 md:px-8" style={{ margin: "0 auto" }}>
+        <div className="flex items-center justify-between h-16" style={{ gap: "1.25rem" }}>
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <img src="../../../resources/logoMone.png" alt="Logo" className="h-8 w-8 mr-2" />
             <span className="text-xl font-bold">MONE</span>
           </div>
 
-          {/* Menu  */}
-          <div className="hidden md:flex space-x-6 items-center">
+          {/* Menu links  */}
+          <div className="hidden md:flex items-center flex-1 justify-end space-x-6 lg:space-x-8 xl:space-x-10">
             {navItems.map((item) => (
               <a key={item.href} href={item.href} className="nav-link">
                 {item.label}
               </a>
             ))}
-            <div className="relative">
+          </div>
+
+          <div className="hidden md:flex items-center" style={{ justifyContent: "flex-end" }}>
+            <div className="relative ml-6 lg:ml-8 xl:ml-10">
               <button
                 type="button"
                 className="flex items-center justify-center w-10 h-10 rounded-full focus:outline-none focus:ring-offset-2"

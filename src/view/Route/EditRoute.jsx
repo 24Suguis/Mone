@@ -10,6 +10,7 @@ import LocationInput from "../components/LocationInput";
 import BackButton from "../components/BackButton";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
+import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
 
 const DEFAULT_CENTER = [39.99256, -0.067387];
 const createLocationState = () => ({ value: "", coords: null, error: "" });
@@ -21,6 +22,43 @@ const parseCoordsFromString = (text) => {
   const [lat, lng] = parts;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return [lat, lng];
+};
+
+const normalizeMobilityKey = (mode) => {
+  if (mode === "bike") return "bike";
+  if (mode === "walk") return "walk";
+  return "vehicle";
+};
+
+const inferMobilityFromVehicle = (vehicle) => {
+  const type = typeof vehicle?.type === "string" ? vehicle.type.toLowerCase() : "";
+  if (type === "bike") return "bike";
+  if (type === "walking") return "walk";
+  return "vehicle";
+};
+
+const formatConsumption = (value, unit) => {
+  if (!Number.isFinite(value) || !unit) return null;
+  return `${value.toFixed(1)} ${unit}`;
+};
+
+const normalizeVehicleConsumption = (vehicle) => {
+  if (!vehicle?.consumption) return null;
+  const base = vehicle.consumption;
+  const maybeAmount = base.amount?.amount ?? base.amount;
+  if (typeof maybeAmount === "number") {
+    return {
+      value: maybeAmount,
+      unit: (base.amount?.unit ?? base.unit ?? "").toLowerCase() || null,
+    };
+  }
+  return null;
+};
+
+const formatVehicleConsumptionDisplay = (vehicle) => {
+  const normalized = normalizeVehicleConsumption(vehicle);
+  if (!normalized) return null;
+  return formatConsumption(normalized.value, normalized.unit ?? undefined);
 };
 
 export default function EditRoute() {
@@ -36,6 +74,8 @@ export default function EditRoute() {
     getSavedRoute,
     updateSavedRoute,
   } = useRouteViewmodel();
+  const vehicleViewmodel = VehicleViewModel();
+  const { vehicles } = vehicleViewmodel;
 
   const [origin, setOrigin] = useState(() => createLocationState());
   const [destination, setDestination] = useState(() => createLocationState());
@@ -183,6 +223,7 @@ export default function EditRoute() {
         destination: payload.destination,
         mobilityType: mobility,
         routeType,
+        vehicle: selectedVehicleRef ?? undefined,
       });
       const normalizedLine = Array.isArray(preview?.polyline)
         ? preview.polyline
@@ -219,6 +260,8 @@ export default function EditRoute() {
       setError("Route name is required to save.");
       return;
     }
+    const originLabel = origin.value || payload.origin;
+    const destinationLabel = destination.value || payload.destination;
     setError("");
     setSaving(true);
     try {
@@ -226,9 +269,12 @@ export default function EditRoute() {
         name: trimmedName,
         origin: payload.origin,
         destination: payload.destination,
+        originLabel,
+        destinationLabel,
         mobilityType: mobility,
         mobilityMethod: mobility,
         routeType,
+        vehicle: selectedVehicleRef ?? undefined,
       });
       await CustomSwal.fire({
         title: "Route Updated",
@@ -257,6 +303,53 @@ export default function EditRoute() {
   useEffect(() => {
     setSelectedVehicle("");
   }, [mobility]);
+
+  const vehicleOptions = useMemo(() => {
+    if (!Array.isArray(vehicles)) return [];
+    return vehicles.map((vehicle, index) => {
+      const mobilityKey = inferMobilityFromVehicle(vehicle);
+      return {
+        id: `${mobilityKey}-${vehicle.name}-${index}`,
+        name: vehicle.name,
+        mobility: mobilityKey,
+        favorite: Boolean(vehicle?.favorite),
+        ref: vehicle,
+      };
+    });
+  }, [vehicles]);
+
+  const vehicleLookup = useMemo(() => {
+    const map = new Map();
+    vehicleOptions.forEach((option) => map.set(option.id, option.ref));
+    return map;
+  }, [vehicleOptions]);
+
+  useEffect(() => {
+    const isDefaultSelection = typeof selectedVehicle === "string" && selectedVehicle.startsWith("default-");
+    if (selectedVehicle && !isDefaultSelection && !vehicleLookup.has(selectedVehicle)) {
+      setSelectedVehicle("");
+    }
+  }, [selectedVehicle, vehicleLookup]);
+
+  const selectedVehicleRef = useMemo(() => {
+    if (!selectedVehicle) return null;
+    return vehicleLookup.get(selectedVehicle) ?? null;
+  }, [selectedVehicle, vehicleLookup]);
+
+  const fetchVehiclesForMode = useCallback(
+    async (mode) => {
+      const normalized = normalizeMobilityKey(mode);
+      return vehicleOptions
+        .filter((option) => option.mobility === normalized)
+        .map((option) => ({
+          id: option.id,
+          name: option.name,
+          favorite: option.favorite,
+          meta: formatVehicleConsumptionDisplay(option.ref) ?? undefined,
+        }));
+    },
+    [vehicleOptions]
+  );
 
   const fetchToponymForCoords = useCallback(async (key, coords) => {
     if (!Array.isArray(coords)) return;
@@ -379,6 +472,7 @@ export default function EditRoute() {
                 mobility={mobility}
                 value={selectedVehicle}
                 onChange={(v) => { setSelectedVehicle(v); invalidatePreview(); }}
+                fetchVehicles={fetchVehiclesForMode}
               />
             </div>
 

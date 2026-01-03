@@ -9,6 +9,7 @@ import LogOut from './view/User/LogOut'
 import NewPlace from './view/Place/NewPlace'
 import ListPlaces from './view/Place/ListPlaces'
 import EditPlace from './view/Place/EditPlace'
+import ViewPlace from './view/Place/ViewPlace'
 import VehiclesPage from './view/vehicle/VehiclesPage'
 import SearchRoute from './view/Route/Searchroute'
 import RouteDetails from './view/Route/RouteDetails'
@@ -51,6 +52,7 @@ function App() {
             <Route path="/logout" element={<LogOut />} />
             <Route path="/places/new" element={<NewPlace />} />
             <Route path="/places/edit/:placeId" element={<EditPlace />} />
+            <Route path="/places/view/:placeId" element={<ViewPlace />} />
             <Route path="/places" element={<ListPlaces />} />
             <Route path="/mobilitymethods" element={<VehiclesPage />} />
             <Route path="/searchroute" element={<SearchRoute />} />
