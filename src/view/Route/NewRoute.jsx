@@ -12,6 +12,11 @@ import LocationInput from "../components/LocationInput";
 import { useRouteViewmodel } from "../../viewmodel/routeViewmodel";
 import { placeViewmodel } from "../../viewmodel/placeViewmodel";
 import { VehicleViewModel } from "../../viewmodel/VehicleViewModel";
+import {
+    getUserDefaultOptions,
+} from "../../viewmodel/UserViewModel";
+
+
 
 const DEFAULT_CENTER = [39.99256, -0.067387];
 const createLocationState = () => ({ value: "", coords: null, error: "" });
@@ -74,6 +79,23 @@ export default function SearchRoute() {
   const [mobility, setMobility] = useState("vehicle");  // vehicle | bike | walk
   const [selectedVehicle, setSelectedVehicle] = useState("");
   const [routeType, setRouteType] = useState("fastest"); // fastest | shortest | scenic
+  const [prefs] = useState(null);
+  const [defaultRouteType, setDefaultRouteType] = useState("fastest");
+  const [defaultMobilityMethod, setDefaultMobilityMethod] = useState("vehicle");
+  const [defaultVehicleName, setDefaultVehicleName] = useState("");
+
+  useEffect(() => {
+    const loadPrefs = async () => {
+      const data = await getUserDefaultOptions();
+      setDefaultRouteType(data?.routeType ?? "fastest");
+      setDefaultMobilityMethod(data?.transportMode ?? "vehicle");
+      setDefaultVehicleName(data?.vehicleName ?? "");
+      setMobility(data?.transportMode ?? "vehicle");
+      setRouteType(data?.routeType ?? "fastest");
+    };
+    loadPrefs();
+  }, []);
+
 
   const [polyline, setPolyline] = useState([]); // [[lat,lng], ...]
   const [center, setCenter] = useState(DEFAULT_CENTER); // default
@@ -317,6 +339,16 @@ export default function SearchRoute() {
     return map;
   }, [vehicleOptions]);
 
+  useEffect(() => { //inspirado en RouteDetails
+    if (!defaultVehicleName) return;
+    const match = vehicleOptions.find(
+      (option) => option.name === defaultVehicleName && option.mobility === mobility
+    );
+    if (match && match.id !== selectedVehicle) {
+      setSelectedVehicle(match.id);
+    }
+  }, [defaultVehicleName, vehicleOptions, mobility, selectedVehicle]);
+  
   useEffect(() => {
     const isDefaultSelection = typeof selectedVehicle === "string" && selectedVehicle.startsWith("default-");
     if (selectedVehicle && !isDefaultSelection && !vehicleLookup.has(selectedVehicle)) {
