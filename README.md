@@ -1,75 +1,73 @@
-# React + TypeScript + Vite
+# MONE · Monitorización y Optimización de Energía ⚡
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. Introducción
+MONE es una plataforma web que ayuda a los usuarios a gestionar sus lugares frecuentes, configurar vehículos y planificar rutas reales con información de costes, distancias y tiempos. La demo pública está desplegada en Vercel: https://moneetravel.vercel.app/ . El objetivo es integrar autenticación, persistencia y cálculo de rutas en un flujo accesible y seguro respaldado por CI/CD en GitHub Actions.
 
-Currently, two official plugins are available:
+(⚠️ Ciertas operaciones de rutas fallan ahí por restricciones de la API de OpenRouteService; en local funcionan correctamente). 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 2. Contexto académico 🎓
+- **Universidad:** Universitat Jaume I (UJI)
+- **Grado:** Ingeniería Informática
+- **Asignatura/Iteración:** Diseño del Software · Paradigmas del Software
+- **Curso:** 2025‑2026
 
-## React Compiler
+## 3. Tecnologías y herramientas
+- **Frontend:** React 19.2.0, TypeScript, Vite, TailwindCSS
+- **Servicios:** Firebase Auth & Firestore, OpenRouteService API
+- **Testing:** Vitest + Testing Library (tests de aceptación e integración)
+- **Gestión:** GitHub Projects/Kanban
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## 4. Estructura del proyecto
+- `src/` – núcleo de la aplicación
+  - `view/` componentes y páginas (Home, Route, Place, User, Vehicle)
+  - `domain/` modelos, servicios, repositorios, proxys, factory, facade y decoradores
+  - `data/` adapters (Firebase, OpenRouteService), mappers y proveedores
+  - `core/` configuración de Firebase y contextos de autenticación
+  - `assets/`, `styles/` – recursos gráficos y hojas CSS
+- `tests/` – carpetas `it-0X` con suites de aceptación/integración por cada iteración
+- `public/` y `resources/` – assets estáticos (logo, modelo tierra 3D, texturas)
+- Configuración raíz: `vite.config.ts`, `tsconfig*.json`, `package.json`, `README.md`
 
-Note: This will impact Vite dev & build performances.
+## 5. Funcionalidades principales
+- Registro, login y gestión de sesión con Firebase y caché local.
+- Guardado, edición, eliminación y consulta de lugares con cacheo offline.
+- Sugerencias toponímicas y reverse geocoding usando OpenRouteService.
+- Configuración de vehículos, preferencias energéticas y opciones por defecto.
+- Gestión: GitHub Projects/Kanban, CI/CD con GitHub Actions, Despliegue en Vercel
+- Dashboard responsive con menús contextuales (HomeNavBar/AppNav) y logout seguro.
 
-## Expanding the ESLint configuration
+## 6. Ejemplos y capturas 📸
+- **Figura 1:** Vista Home
+![Vista Home](public/home.png)
+- **Figura 2:** Panel para buscar rutas 
+![Vista Ruta](public/search.png)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Figura 3:** Personalizaciones
+![Métodos Movilidad](public/personalizacionvehiculos.png)
+![Preferencias](public/preferencias.png)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+-  **Figura 4:** Trayectos guardados:
+![Rutas guardadas](public/rutas.png)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 7. Posibles futuras mejoras
+- Adaptación a otros idiomas (ES/VAL).
+- Panel analítico comparando hábitos de movilidad del usuario.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 8. Instalación y ejecución 🚀
+1. Clonar el repositorio.
+2. Instalar dependencias: `npm install`.
+3. Crear `.env` con:
+  - `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, ...
+  - `VITE_ORS_API_KEY` y opcionalmente `VITE_ORS_BASE_URL`.
+4. Servidor de desarrollo: `npm run dev` → http://localhost:5173.
+5. Probar suites: `npm run vitest` (o `npx vitest --ui`).
+6. Build final: `npm run build`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 9. Autores y créditos 🙌
+- Ernesto Vilalta Guerrero
+- Teresa Barzano Aicart
+- Haytame El Harhari Annour
+
+
