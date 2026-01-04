@@ -1,0 +1,13 @@
+@startuml singleton
+!theme plain
+skinparam linetype ortho 
+class UserService {
+    - instance : UserService
+    + UserService()
+    + getInstance() : UserService
+}
+
+class Client
+
+Client --> UserService
+@enduml

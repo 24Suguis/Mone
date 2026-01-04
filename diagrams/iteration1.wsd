@@ -1,0 +1,94 @@
+@startuml
+!theme plain
+skinparam linetype ortho
+' Clase que representa al usuario
+class User {
+  - email: string
+  - nickname: string
+  + updateProfile(nickname?: string, email?: string): User
+}
+
+' Clase que maneja la sesión del usuario
+class UserSession {
+  - userId: string
+  - tokenFirebase: string
+  + saveToCache(): void
+  + clearCache(): void
+  + loadFromCache(): UserSession
+  + isSessionActive(): boolean
+}
+
+' Interfaz para autenticación
+interface AuthProvider {
+  + signUp(user User, password: string): string
+  + logIn(email: string, password: string): UserSession
+  + logOut(token: string): void
+  + googleSignIn(): UserSession
+  + sendPasswordResetLink(email: string, actionCodeSettings?: ActionCodeSettings): void
+  + changeUserPassword(currentPassword: string, newPassword: string, oobCode: string): void
+  }
+
+' Clase que implementa la autenticación con Firebase
+class FirebaseAuthAdapter {
+  + signUp(user: User, password: string): string
+  + logIn(email: string, password: string): UserSession
+  + logOut(): void
+  + googleSignIn(): UserSession 
+  + changeUserPassword(currentPassword: string, newPassword: string, oobCode: string): void
+  + sendPasswordResetLink(email: string, actionCodeSettings?: ActionCodeSettings): void
+}
+
+' Interfaz para persistencia de usuarios
+interface UserRepository {
+  + saveUser(userId: string, tempUser: User): void
+  + deleteUser(userId: string): void
+  + updateUserProfile(userId: string, tempUser: User): void
+  + getUserByEmail(email: string): User
+  + getUserById(userId: string): User
+}
+
+class UserRepositoryFirebase {
+  - dataSource: FirebaseFirestore
+  + saveUser(userId: string, tempUser: User): void
+  + updateUserProfile(userId: string, tempUser: User): void
+  + deleteUser(userId: string): void
+  + getUserById(userId: string): User
+  + getUserByEmail(email: string): User
+}
+
+class FirebaseDataSource{
+  - saveUser(userId: string, User:User): string
+  - getUserById(userId: string): User
+  - getUserByEmail(email: string): User
+  - updateUserProfile(userId: string, tempUser: User): void
+  - deleteUser(userId: string): void
+}
+
+' Servicio de usuario que centraliza la lógica de gestión --corregido
+class UserService {
+  - instance: UserService
+  - userRepository: UserRepository
+  - authProvider: AuthProvider
+  + getInstance(authProvider: AuthProvider, repProvider: UserRepository): UserService
+  + signUp(email: string, nickname: string, password: string): string
+  + logIn(email: string, password: string): UserSession
+  + logOut(): void
+  + deleteUser(email: string): boolean
+  + updateCurrentUserProfile(newEmail?: string, newNickname?: string): boolean
+  + googleSignIn(): UserSession 
+  + changeUserPassword(currentPassword: string, newPassword: string, oobCode: string): void}
+}
+' Relaciones
+UserViewModel --> UserService
+UserService --> UserRepository
+UserService --> AuthProvider
+
+UserRepositoryFirebase --> User
+UserRepositoryFirebase -up--> FirebaseDataSource
+UserRepositoryFirebase ..|> UserRepository
+
+FirebaseAuthAdapter ..|> AuthProvider
+FirebaseAuthAdapter -up-> UserSession
+
+FirebaseAuthAdapter -up--> FirebaseDataSource
+@enduml

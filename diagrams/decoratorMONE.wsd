@@ -1,0 +1,86 @@
+@startuml decorator_full
+!theme plain
+skinparam linetype ortho
+
+' Interfaz común
+interface IRoute {
+  + getDistance(): number
+  + getDuration(): number
+  + getCost(): number
+  + getMobilityType(): string
+  + getSteps(): string[]
+  + getRouteType(): string
+}
+
+' Clase concreta (componente)
+class Route {
+  - distance: number
+  - duration: number
+  - cost: number
+  - mobilityType: string
+  - steps: string[]
+  - routeType: string
+  + getDistance(): number
+  + getDuration(): number
+  + getCost(): number
+  + getMobilityType(): string
+  + getSteps(): string[]
+  + getRouteType(): string
+}
+
+' Decorador abstracto (implementa IRoute y referencia a otro IRoute)
+abstract class RouteDecorator {
+  # decoratedRoute: IRoute
+  + getDistance(): number
+  + getDuration(): number
+  + getCost(): number
+  + getMobilityType(): string
+  + getSteps(): string[]
+  + getRouteType(): string
+}
+
+' Decoradores concretos
+class DistanceUnitDecorator {
+  - unit: DistanceUnit
+  + getDistance(): number
+}
+class ElectricConsumptionDecorator {
+  - unit: ConsumptionUnitElectricity
+  + getDistance(): number
+}
+
+class FuelConsumptionDecorator  {
+  - unit: ConsumptionUnitCombustion
+  + getDistance(): number
+}
+enum DistanceUnit {
+  kilometers
+  miles
+}
+
+enum ConsumptionUnitElectricity {
+  kWh/100km
+  km/kWh
+}
+enum ConsumptionUnitCombustion {
+  L/100km
+  km/L
+}
+
+
+
+' Relaciones de implementación / herencia
+IRoute <|.. Route
+IRoute <|.. RouteDecorator
+RouteDecorator <|-- DistanceUnitDecorator
+RouteDecorator <|-- FuelConsumptionDecorator
+RouteDecorator <|-- ElectricConsumptionDecorator
+
+' Composición: el decorador envuelve un IRoute (composición dirigida)
+RouteDecorator *-- IRoute
+
+' Cliente
+class Client
+Client --> IRoute
+
+@enduml

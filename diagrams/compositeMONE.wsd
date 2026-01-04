@@ -1,0 +1,90 @@
+@startuml composite
+!theme plain
+skinparam linetype ortho
+
+class Client
+
+interface MobilityMethodComponent <<interface>> {
+	+ getName(): string
+	+ getType(): string
+    + getEnergyType(): string
+    + getAverageConsumption(): number
+    + getMobilityMethod(): string
+}
+
+
+class GasolineVehicle{
+  - name: string
+  - type: string
+  - energyType: string
+  - averageConsumption: number
+  - mobilityMethod: string
+
+}
+class DieselVehicle{
+  - name: string
+  - type: string
+  - energyType: string
+  - averageConsumption: number
+  - mobilityMethod: string
+}
+
+class Bike{
+  - name: string
+  - type: string
+  - energyType: string
+  - averageConsumption: number
+  - mobilityMethod: string
+}
+class Walking{
+  - name: string
+  - type: string
+  - energyType: string
+  - averageConsumption: number
+  - mobilityMethod: string
+}
+
+class ElectricVehicle{
+  - name: string
+  - type: string
+  - energyType: string
+  - averageConsumption: number
+  - mobilityMethod: string
+}
+
+
+class MobilityMethods {
+	- mobilityMethods: List<MobilityMethodComponent>
+	+ add(m: MobilityMethodComponent)
+	+ remove(m: MobilityMethodComponent)
+	+ getType(): string 
+	+ getEnergyType(): string
+	+ getAverageConsumption(): number
+	+ getMobilityMethod(): string
+	+ getElectricCars(): MobilityMethodComponent[]
+	+ getDieselCars(): MobilityMethodComponent[]
+	+ getGasolineCars(): MobilityMethodComponent[]
+	+ getVehicles(): MobilityMethodComponent[]
+	+ getBicycles(): MobilityMethodComponent[]
+	+ getWalking(): MobilityMethodComponent[]
+	+ getName(): string
+}
+
+' Relaciones: Client usa Component
+Client -down-> MobilityMethodComponent
+
+' Implementaciones
+MobilityMethodComponent <|.. GasolineVehicle
+MobilityMethodComponent <|.. DieselVehicle
+MobilityMethodComponent <|.. Bike
+MobilityMethodComponent <|-left-. Walking
+MobilityMethodComponent <|.. ElectricVehicle
+MobilityMethodComponent <|.. MobilityMethods
+
+
+' Agregación: Composite contiene Component
+MobilityMethods o-> MobilityMethodComponent
+
+
+@enduml
+

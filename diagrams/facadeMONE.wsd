@@ -1,0 +1,48 @@
+@startuml facade
+!theme plain
+skinparam linetype ortho
+
+class Client
+
+class PlanRouteFacade {
+    - PlaceService placeService
+    - RouteService routeService
+    - MobilityMethodService mobilityMethodService
+    - LocationService locationService
+    + planRouteDefault(origin: string, destination: string): Route
+    + planRouteByMobilityMethod(origin: string, destination: string, mobility: string): Route
+    + saveRoute(route: Route): boolean
+    + getSavedPlaces(): Places[]
+    + getSimilarToponimsBystring(toponym: string): string[]
+    + getLocationByToponim(toponim: string): Loaction
+    + getMoblityMethodsByMobilityType(mobilityType: string): MobilityMethod[]
+}
+
+package SubsystemClasses {
+    class RouteService{
+        + getRoute(origin, destination, mobilityType, routeType): Route
+        + saveRoute(route: Route): void
+    }
+    class PlaceService{
+        + getSavedPlaces(): Place[]
+    }
+    class MobilityMethodService{
+        + getMoblityMethodsByMobilityType(mobilityType: string): MobilityMethod[]
+    }
+    class LocationService{
+        + getSimilarToponimsBystring(toponym: string): string[]
+        + getLocationByToponim(toponim: string): Loaction
+    }
+}
+
+' Relaciones
+Client -down-> PlanRouteFacade
+
+' Relaciones con el subsistema (usando líneas punteadas para mostrar dependencia)
+PlanRouteFacade .down.> PlaceService
+PlanRouteFacade .down.> RouteService
+PlanRouteFacade .left.> MobilityMethodService
+PlanRouteFacade .right.> LocationService
+
+
+@enduml

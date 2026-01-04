@@ -1,0 +1,46 @@
+@startuml strategyMONE
+!theme plain
+skinparam linetype ortho
+
+class Route{
+    - distance: number
+    - duration: number
+    - cost: number
+    - mobilityType: string
+    - steps: string[]
+    - routeType: string
+    - CostStrategy: costStrategy
+    
+    + setStrategy(CostStrategy): void --para asignar la estrategia adecuada
+    + setCost(): void
+}
+
+
+interface CostStrategy <<interface>> {
+    + calculateCost()
+}
+
+
+class BicycleCostStrategy {
+    + calculateCost(Route route, number cycling): float
+}
+
+class WalkingCostStrategy {
+    + calculateCost(Route route, number walking): float
+}
+
+class VehicleCostStrategy {
+    + calculateCost(Route route, number price, number consumption): float
+}
+
+
+
+
+Route o-left-> CostStrategy
+
+CostStrategy <|.. BicycleCostStrategy
+CostStrategy <|.. WalkingCostStrategy
+CostStrategy <|.. VehicleCostStrategy
+
+
+@enduml

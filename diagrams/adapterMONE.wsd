@@ -1,0 +1,23 @@
+@startuml adapter
+!theme plain
+skinparam linetype ortho
+
+interface RouteProviderInterfaceClient <<interface>> {
+  + getRoute(start: string, end: string, mobility: string, type: string): Route
+}
+
+class OpenRouteAdapter{
+  - openRouteServiceAPI: Service
+  + getRoute(start: string, end: string, mobility: string, type: string): Route
+}
+
+class OpenRouteService {
+  + getRoute(start: string, end: string, mobility: string, type: string): json 
+}
+
+RouteProviderInterfaceClient <|.. OpenRouteAdapter
+
+Client -right-> RouteProviderInterfaceClient
+OpenRouteAdapter -right-> OpenRouteService
+
+@enduml
