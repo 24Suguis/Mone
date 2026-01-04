@@ -1,50 +1,53 @@
 import React from "react";
 import { useUserViewModel2 } from "../../viewmodel/userViewModel2";
 import "../../../styles/styles.css";
-export const RecuperarContraseña = () => {
-  const {
-    email,
-    message,
-    errors,
-    loading,
-    setEmail,
-    setMessage,
-    setErrors,
-    setLoading,
-    recoverPassword, logOut
-  } = useUserViewModel2();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+export const RecuperarContraseña = () => {
+  const { email, message, errors, loading, setEmail, recoverPassword } = useUserViewModel2();
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
     recoverPassword();
   };
 
   return (
-    <div className="recoverPasswordPage">
-      <div className="recoverPasswordContainer">
-        <h2>Recover Password</h2>
-        <h3>Enter your email address and we'll send you a link to reset your password.</h3>
-        <form onSubmit={handleSubmit}>
+    <section className="recover-wrapper">
+      <article className="recover-card">
+        <header className="recover-header">
+          <p className="recover-eyebrow">Account access</p>
+          <h1>Recover password</h1>
+          <p className="recover-subtitle">
+            Introduce tu email y te enviaremos un enlace seguro para restablecer tu contraseña.
+          </p>
+        </header>
+
+        <form className="recover-form" onSubmit={handleSubmit}>
+          <label htmlFor="recoverEmail">Email</label>
           <input
+            id="recoverEmail"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
+            placeholder="you@example.com"
+            aria-invalid={Boolean(errors.email)}
+            required
           />
 
-          <button className='recuperarContraseña btn-secondary' type="submit" disabled={loading}>
+          <button className="btn btn-primary recover-btn" type="submit" disabled={loading}>
             {loading ? "Sending..." : "Send recovery link"}
           </button>
 
-          {message && <p style={{ color: "green" }}>{message}</p>}
-          {errors.email && <p style={{ color: "red" }}>{errors.email}</p>}
-
-
-          <p>Remember your password? <span>  <a href="/login" className="link_login">Log in</a></span></p>
-
+          {message && <p className="recover-message success-text">{message}</p>}
+          {errors.email && <p className="recover-message error-text">{errors.email}</p>}
         </form>
-      </div>
-    </div>
+
+        <footer className="recover-footer">
+          <p>
+            Remember your password? <a href="/login" className="link-button">Log in</a>
+          </p>
+        </footer>
+      </article>
+    </section>
   );
 };
 

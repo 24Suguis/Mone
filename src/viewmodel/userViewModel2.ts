@@ -46,6 +46,13 @@ export const useUserViewModel2 = () => {
       if (msg === "UserNotFound") {
         setErrors({ email: "User not found" });
         setMessage("Email not registered.");
+      } else if (msg === "GoogleAccountNoPassword") {
+        const notice = "This account is linked to Google. Manage your password through Google.";
+        setErrors({ email: notice });
+        setMessage(notice);
+      } else if (msg === "PasswordResetUnavailable") {
+        setErrors({ email: "Password reset unavailable" });
+        setMessage("We cannot send a reset link for this provider.");
       } else {
         setMessage(msg);
       }

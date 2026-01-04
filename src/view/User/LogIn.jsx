@@ -86,7 +86,7 @@ export default function LogIn({ onSuccess }) {
             {errors.password && <p className="error-text">{errors.password}</p>}
 
             <div style={{ marginTop: "0.8rem" }}>
-              <a href="/forgot-password" className="password-link">Forgot your password?</a>
+              <a href="/recover-password" className="password-link">Forgot your password?</a>
             </div>
 
             </form>

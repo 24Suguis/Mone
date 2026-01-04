@@ -41,9 +41,14 @@ export const SignUp = () => {
   };
 
   return (
-    <div className="center" role="main" style={{height: "100%", width: "100%"}}>
-      <div className="default-container with-border login-card" aria-live="polite">
-        <h2 style={{ textAlign: "center", margin: "0 0 1rem" }}>Sign Up</h2>
+    <div className="signup-wrapper" role="main">
+      <div className="default-container with-border login-card signup-card" aria-live="polite">
+        <header className="signup-header">
+          <p className="signup-eyebrow">Create your account</p>
+          <h1 className="signup-title">Sign up to plan smarter routes</h1>
+
+        </header>
+
         <label htmlFor="email">Email</label>
         <input
           id="email"
@@ -101,25 +106,19 @@ export const SignUp = () => {
         <button
           onClick={onSignUp}
           disabled={loading}
-          className="btn btn-primary"
-          style={{ marginTop: 12, width: "100%", boxSizing: "border-box", display: "block" }}
+          className="btn btn-primary signup-btn"
         >
           {loading ? "Creando cuenta..." : "Sign Up"}
         </button>
 
-        <p style={{ marginTop: 12, textAlign: "center", fontSize: "0.8rem" }}>
+
+
+        <p className="signup-switch">
           Already have an account?{" "}
           <button
             type="button"
             onClick={() => navigate("/login")}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--color-primary)",
-              textDecoration: "underline",
-              cursor: "pointer",
-              padding: 0,
-            }}
+            className="link-button"
           >
             Log in
           </button>
