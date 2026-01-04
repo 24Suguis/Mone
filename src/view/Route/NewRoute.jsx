@@ -347,7 +347,7 @@ export default function SearchRoute() {
     if (match && match.id !== selectedVehicle) {
       setSelectedVehicle(match.id);
     }
-  }, [defaultVehicleName, vehicleOptions, mobility, selectedVehicle]);
+  }, [defaultVehicleName, vehicleOptions, mobility]);
   
   useEffect(() => {
     const isDefaultSelection = typeof selectedVehicle === "string" && selectedVehicle.startsWith("default-");
