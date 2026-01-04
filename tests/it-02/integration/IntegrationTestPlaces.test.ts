@@ -155,7 +155,12 @@ describe("HU07-HU11: Places integration", () => {
 
       const suggestions = await service.suggestToponyms("pla", 3);
 
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/geocode/search"));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/geocode/search"),
+        expect.objectContaining({
+          headers: expect.objectContaining({ Accept: "application/json" }),
+        })
+      );
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].label).toBe("Place A");
       expect(suggestions[0].latitude).toBe(1.1);
