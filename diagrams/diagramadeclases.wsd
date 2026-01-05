@@ -1,0 +1,593 @@
+@startuml !cimplain
+!theme plain
+
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classFontSize 11
+skinparam classAttributeFontSize 10
+skinparam classAttributeIconSize 12
+skinparam ClassPadding 4
+skinparam PackagePadding 6
+skinparam ArrowThickness 1
+title Mone – UML Class Diagram
+
+package "Domain" {
+	class User {
+		- email : String
+		- nickname : String
+		+ getEmail() : String
+		+ getNickname() : String
+		+ updateProfile(nickname, email) : User
+	}
+
+	class UserSession {
+		- userId : String
+		- tokenFirebase : String
+		+ isLoggedIn() : Boolean
+		+ saveToCache() : void
+		+ loadFromCache() : UserSession
+		+ clear() : void
+	}
+
+	class Place {
+		- _name : String
+		- _latitude : Number
+		- _longitude : Number
+		- _toponymicAddress : String
+		- _description : String
+		+ toJSON() : Object
+	}
+
+	class Route {
+		- origin : String
+		- destination : String
+		- distanceMeters : Number
+		- durationMinutes : Number
+		- steps : List<String>
+		- consumptionPer100Km : Number
+		- consumptionUnit : ConsumptionUnit
+		- cost : Number
+		+ getDistance() : Number
+		+ getDuration() : Number
+		+ getRouteType() : String
+		+ getMobilityType() : String
+		+ getConsumptionValue() : Number
+		+ getCost() : Number
+	}
+
+	class Vehicle <<interface>> {
+		+ name : String
+		+ fuelType : FuelType
+		+ consumption : Consumption
+		+ favorite : Boolean
+		+ mostrarInfo() : void
+	}
+
+	class VehicleFactory {
+		+ createVehicle(type, name, fuelType, consumption, favorite) : Vehicle
+	}
+
+	class UserPreferences {
+		+ distanceUnit : DistanceUnit
+		+ combustionConsumptionUnit : ConsumptionUnit
+		+ electricConsumptionUnit : ConsumptionUnit
+	}
+
+	class UserDefaultOptions {
+		+ transportMode : TransportMode
+		+ routeType : RouteTypeOption
+		+ vehicleName : String
+	}
+}
+
+package "Services" {
+	class UserService {
+		- authProvider : AuthProvider
+		- userRepository : UserRepository
+		+ signUp(email, nickname, password) : String
+		+ logIn(email, password) : UserSession
+		+ logOut() : void
+		+ deleteUser(email, password) : Boolean
+		+ updateCurrentUserProfile(email, password, nickname) : Result
+	}
+
+	class VehicleService {
+		- vehicleRepository : VehicleRepositoryInterface
+		+ getVehicles(ownerId) : List<Vehicle>
+		+ registerVehicle(ownerId, type, name, fuelType, consumption) : void
+		+ editVehicle(ownerId, vehicleName, updates) : Vehicle
+		+ deleteVehicle(ownerId, vehicleName) : void
+		+ setFavorite(ownerId, vehicleName, favorite) : void
+	}
+
+	class PlaceService {
+		- placeRepository : PlaceRepository
+		- sessionProvider : () -> UserSession
+		+ getSavedPlaces(userId) : List<Place>
+		+ savePlace(place, options) : Place
+		+ editPlace(id, updates, options) : Place
+		+ deletePlace(id, options) : void
+		+ suggestToponyms(query, limit) : List<ToponymSuggestion>
+	}
+
+	class RouteService {
+		- repository : RouteRepository
+		- provider : IRouteProvider
+		+ requestRoute(options) : IRouteData
+		+ saveRoute(options) : String
+		+ listSavedRoutes(userId) : List<RouteSavedDTO>
+		+ updateSavedRoute(routeId, payload, userId) : void
+		+ deleteSavedRoute(routeId, userId) : void
+		+ setFavorite(routeId, favorite, userId) : void
+	}
+
+	class RouteFacade {
+		- service : RouteService
+		- preferencesService : UserPreferencesService
+		- costGateway : CostEstimatorGateway
+		+ requestRoute(options, vehicle) : RouteResponse
+		+ previewRoute(options, vehicle) : SerializedRoute
+		+ requestAndSaveRoute(options, vehicle) : RouteResponse
+		+ listSavedRoutes(userId) : List<RouteSavedDTO>
+	}
+
+	class UserPreferencesService {
+		- repository : UserPreferencesRepositoryInterface
+		+ get(userId) : UserPreferences
+		+ save(userId, preferences) : void
+	}
+
+	class UserDefaultOptionsService {
+		- repository : UserDefaultOptionsRepositoryInterface
+		+ get(userId) : UserDefaultOptions
+		+ save(userId, options) : void
+	}
+}
+
+package "Infrastructure" {
+	package "Auth & Perfil" {
+		class FirebaseAuthAdapter {
+			+ signUp(user, password) : String
+			+ logIn(email, password) : UserSession
+			+ googleSignIn() : UserSession
+			+ updateUserEmail(userId, newEmail, password, settings) : void
+			+ canUpdateEmail(userId) : Boolean
+			+ sendRecoveryEmail(email) : void
+			+ logOut() : void
+			+ deleteUser(userId, password) : void
+		}
+
+		class UserRepositoryFirebase {
+			+ getUserById(id) : User
+			+ getUserByEmail(email) : User
+			+ saveUser(id, user) : void
+			+ updateUserProfile(id, user) : void
+			+ deleteUser(email) : Snapshot
+		}
+	}
+
+	package "Repositorios de Datos" {
+		class VehicleRepositoryFirebase {
+			+ saveVehicle(userId, vehicle) : void
+			+ getVehiclesByOwnerId(userId) : List<Vehicle>
+			+ deleteVehicle(userId, name) : void
+			+ updateVehicle(userId, name, updates) : void
+			+ getVehicleByName(userId, name) : Vehicle
+		}
+
+		class PlaceRepositoryFirebase {
+			+ getPlacesByUser(userId) : List<Place>
+			+ getPlaceById(userId, id) : Place
+			+ createPlace(userId, place) : String
+			+ updatePlace(userId, id, place) : void
+			+ deletePlace(userId, id) : void
+		}
+
+		class RouteRepositoryFirebase {
+			+ saveRoute(userId, payload) : String
+			+ listRoutes(userId) : List<RouteSavedDTO>
+			+ deleteRoute(userId, routeId) : void
+			+ getRoute(userId, routeId) : RouteSavedDTO
+			+ updateRoute(userId, routeId, payload) : void
+		}
+
+		class UserPreferencesRepository {
+			+ getPreferences(userId) : UserPreferences
+			+ savePreferences(userId, preferences) : void
+		}
+
+		class UserDefaultOptionsRepository {
+			+ getDefaultOptions(userId) : UserDefaultOptions
+			+ saveDefaultOptions(userId, options) : void
+		}
+	}
+
+	package "Routing & Costes" {
+		class OpenRouteServiceHttpClient {
+			+ getRoute(origin, destination, mobilityType, routeType) : HttpResponse
+		}
+
+		class OpenRouteServiceAdapter {
+			- api : OpenRouteServiceHttpClient
+			+ getRoute(origin, destination, mobilityType, routeType) : Route
+		}
+
+		class RouteProxy {
+			- cache : Map
+			- realProvider : IRouteProvider
+			+ getRoute(origin, destination, mobilityType, routeType) : Route
+		}
+
+		class EnergyPriceGateway {
+			+ getLatestPrices() : PriceSnapshot
+			+ prefetch() : void
+			+ getCacheInfo() : CacheStatus
+		}
+	}
+
+	package "Decorators" {
+		class RouteDecorator <<abstract>> {
+			# route : IRouteData
+			+ getDistance() : Number
+			+ getDistanceUnit() : DistanceUnit
+			+ getDuration() : Number
+			+ getCost() : Number
+			+ getCostCurrency() : String
+			+ getSteps() : List<String>
+			+ getMobilityType() : String
+			+ getRouteType() : String
+			+ getConsumptionValue() : Number
+			+ getConsumptionUnit() : ConsumptionUnit
+			+ getPolyline() : List<Point>
+		}
+
+		class DistanceUnitDecorator {
+			- preferredUnit : DistanceUnit
+			+ getDistance() : Number
+			+ getDistanceUnit() : DistanceUnit
+		}
+
+		class ConsumptionUnitDecorator {
+			- preferredUnit : ConsumptionUnit
+			+ getConsumptionValue() : Number
+			+ getConsumptionUnit() : ConsumptionUnit
+		}
+
+		class CostEstimatorDecorator {
+			- priceSnapshot : PriceSnapshot
+			+ getCost() : Number
+			+ getCostCurrency() : String
+			+ getPriceSnapshot() : PriceSnapshot
+		}
+
+		class PriceSnapshot {
+			+ currency : String
+			+ gasolinePerLiter : Number
+			+ dieselPerLiter : Number
+			+ electricityPerKwh : Number
+			+ timestamp : Number
+		}
+	}
+}
+
+interface AuthProvider {
+	+ signUp(user, password) : String
+	+ logIn(email, password) : UserSession
+	+ googleSignIn() : UserSession
+	+ updateUserEmail(userId, newEmail, password, settings) : void
+	+ canUpdateEmail(userId) : Boolean
+	+ sendRecoveryEmail(email) : void
+	+ logOut() : void
+	+ deleteUser(userId, password) : void
+}
+
+interface UserRepository {
+	+ getUserById(id) : User
+	+ getUserByEmail(email) : User
+	+ saveUser(id, user) : void
+	+ updateUserProfile(id, user) : void
+	+ deleteUser(email) : Snapshot
+}
+
+interface VehicleRepositoryInterface {
+	+ saveVehicle(userId, vehicle) : void
+	+ getVehiclesByOwnerId(userId) : List<Vehicle>
+	+ deleteVehicle(userId, vehicleName) : void
+	+ updateVehicle(userId, vehicleName, updates) : void
+	+ getVehicleByName(userId, vehicleName) : Vehicle
+}
+
+interface PlaceRepository {
+	+ getPlacesByUser(userId) : List<Place>
+	+ getPlaceById(userId, id) : Place
+	+ createPlace(userId, place) : String
+	+ updatePlace(userId, id, place) : void
+	+ deletePlace(userId, id) : void
+}
+
+interface RouteRepository {
+	+ saveRoute(userId, payload) : String
+	+ listRoutes(userId) : List<RouteSavedDTO>
+	+ deleteRoute(userId, routeId) : void
+	+ getRoute(userId, routeId) : RouteSavedDTO
+	+ updateRoute(userId, routeId, payload) : void
+}
+
+interface UserPreferencesRepositoryInterface {
+	+ getPreferences(userId) : UserPreferences
+	+ savePreferences(userId, preferences) : void
+}
+
+interface UserDefaultOptionsRepositoryInterface {
+	+ getDefaultOptions(userId) : UserDefaultOptions
+	+ saveDefaultOptions(userId, options) : void
+}
+
+interface IRouteProvider {
+	+ getRoute(origin, destination, mobilityType, routeType) : Route
+}
+
+interface CostEstimatorGateway {
+	+ getLatestPrices() : PriceSnapshot
+}
+
+interface IRouteData {
+	+ getDistance() : Number
+	+ getDistanceUnit() : DistanceUnit
+	+ getDuration() : Number
+	+ getMobilityType() : String
+	+ getRouteType() : String
+	+ getSteps() : List<String>
+	+ getConsumptionValue() : Number
+	+ getConsumptionUnit() : ConsumptionUnit
+	+ getCost() : Number
+	+ getCostCurrency() : String
+	+ getPolyline() : List<Point>
+}
+
+UserService --> AuthProvider : usa
+UserService --> UserRepository : persiste
+UserService --> UserSession : gestiona sesiones
+AuthProvider <|.. FirebaseAuthAdapter
+UserRepository <|.. UserRepositoryFirebase
+UserService ..> User : gestiona
+
+VehicleService --> VehicleRepositoryInterface
+VehicleService --> VehicleFactory
+VehicleService --> UserSession
+VehicleRepositoryInterface <|.. VehicleRepositoryFirebase
+VehicleFactory ..> Vehicle
+
+PlaceService --> PlaceRepository
+PlaceService --> UserSession
+PlaceRepository <|.. PlaceRepositoryFirebase
+PlaceService ..> Place
+
+RouteService --> RouteRepository
+RouteRepository <|.. RouteRepositoryFirebase
+RouteService --> RouteProxy
+RouteService --> UserSession
+IRouteProvider <|.. RouteProxy
+RouteProxy o--> IRouteProvider
+IRouteProvider <|.. OpenRouteServiceAdapter
+OpenRouteServiceAdapter --> OpenRouteServiceHttpClient
+
+RouteFacade --> RouteService
+RouteFacade --> UserPreferencesService
+RouteFacade --> CostEstimatorGateway
+RouteFacade --> VehicleService
+CostEstimatorGateway <|.. EnergyPriceGateway
+CostEstimatorDecorator --> PriceSnapshot
+EnergyPriceGateway --> PriceSnapshot
+
+UserPreferencesService --> UserPreferencesRepositoryInterface
+UserPreferencesRepositoryInterface <|.. UserPreferencesRepository
+UserDefaultOptionsService --> UserDefaultOptionsRepositoryInterface
+UserDefaultOptionsRepositoryInterface <|.. UserDefaultOptionsRepository
+UserDefaultOptionsService --> VehicleService
+
+IRouteData <|.. Route
+IRouteData <|.. RouteDecorator
+RouteDecorator <|-- DistanceUnitDecorator
+RouteDecorator <|-- ConsumptionUnitDecorator
+RouteDecorator <|-- CostEstimatorDecorator
+
+User "1" o-- "*" Place : guarda
+User "1" o-- "*" Route : calcula
+User "1" o-- "*" Vehicle : gestiona
+User "1" o-- "1" UserPreferences : configura unidades
+User "1" o-- "1" UserDefaultOptions : define valores por defecto
+
+UserPreferencesService --> User : aplica cambios
+UserDefaultOptionsService --> User : persiste elección
+
+@enduml
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+title Mone - Class Diagram (Domain + Services)
+
+package "Domain Model" {
+	class User {
+		+getEmail()
+		+getNickname()
+	}
+
+	class Place {
+		+name
+		+latitude
+		+longitude
+		+toponymicAddress
+	}
+
+	class Vehicle <<interface>> {
+		+name
+		+fuelType
+		+consumption
+		+favorite
+		+mostrarInfo()
+	}
+
+	class VehicleFactory <<factory>>
+
+	class IRouteData <<interface>> {
+		+getDistance()
+		+getDuration()
+		+getRouteType()
+		+getMobilityType()
+		+getConsumptionValue()
+		+getCost()
+	}
+
+	class Route {
+		+origin
+		+destination
+		+steps
+		+polyline
+	}
+
+	class UserPreferences <<value_object>> {
+		distanceUnit
+		combustionConsumptionUnit
+		electricConsumptionUnit
+	}
+
+	class UserDefaultOptions <<value_object>> {
+		transportMode
+		routeType
+		vehicleName
+	}
+}
+
+package "Session" {
+	class UserSession {
+		+saveToCache()
+		+loadFromCache()
+		+clear()
+	}
+}
+
+package "Services" {
+	class UserService
+	class VehicleService
+	class PlaceService
+	class RouteService
+	class RouteFacade
+	class UserPreferencesService
+	class UserDefaultOptionsService
+}
+
+package "Repositories & Providers" {
+	interface AuthProvider
+	class FirebaseAuthAdapter
+
+	interface UserRepository
+	class UserRepositoryFirebase
+
+	interface VehicleRepositoryInterface
+	class VehicleRepositoryFirebase
+
+	interface PlaceRepository
+	class PlaceRepositoryFirebase
+
+	interface RouteRepository
+	class RouteRepositoryFirebase
+
+	interface UserPreferencesRepositoryInterface
+	class UserPreferencesRepository
+
+	interface UserDefaultOptionsRepositoryInterface
+	class UserDefaultOptionsRepository
+
+	interface IRouteProvider
+	class RouteProxy
+	class OpenRouteServiceAdapter
+	class OpenRouteServiceHttpClient
+
+	interface CostEstimatorGateway
+	class EnergyPriceGateway
+}
+
+package "Decorators" {
+	abstract class RouteDecorator
+	class DistanceUnitDecorator
+	class ConsumptionUnitDecorator
+	class CostEstimatorDecorator
+	class PriceSnapshot <<value_object>>
+}
+
+UserService --> AuthProvider : usa
+UserService --> UserRepository : persiste perfiles
+UserService --> UserSession : gestiona cache
+UserService ..> User
+AuthProvider <|.. FirebaseAuthAdapter
+UserRepository <|.. UserRepositoryFirebase
+
+VehicleService --> VehicleRepositoryInterface : CRUD vehiculos
+VehicleService --> VehicleFactory : crea instancias
+VehicleService --> UserSession : resuelve ownerId
+VehicleService ..> Vehicle
+VehicleRepositoryInterface <|.. VehicleRepositoryFirebase
+
+PlaceService --> PlaceRepository : persiste lugares
+PlaceService --> UserSession
+PlaceService ..> Place
+PlaceRepository <|.. PlaceRepositoryFirebase
+
+RouteService --> RouteRepository : guarda rutas
+RouteService --> RouteProxy : obtiene rutas remotas
+RouteService --> UserSession
+RouteRepository <|.. RouteRepositoryFirebase
+
+IRouteProvider <|.. RouteProxy
+RouteProxy o--> IRouteProvider : delega en
+IRouteProvider <|.. OpenRouteServiceAdapter
+OpenRouteServiceAdapter --> OpenRouteServiceHttpClient : usa cliente HTTP
+
+RouteFacade --> RouteService
+RouteFacade --> UserPreferencesService
+RouteFacade --> CostEstimatorGateway
+RouteFacade --> VehicleService : aplica overrides
+RouteFacade ..> DistanceUnitDecorator
+RouteFacade ..> ConsumptionUnitDecorator
+RouteFacade ..> CostEstimatorDecorator
+
+UserPreferencesService --> UserPreferencesRepositoryInterface
+UserPreferencesService ..> UserPreferences
+UserPreferencesRepositoryInterface <|.. UserPreferencesRepository
+
+UserDefaultOptionsService --> UserDefaultOptionsRepositoryInterface
+UserDefaultOptionsService --> VehicleService
+UserDefaultOptionsService ..> UserDefaultOptions
+UserDefaultOptionsRepositoryInterface <|.. UserDefaultOptionsRepository
+
+CostEstimatorGateway <|.. EnergyPriceGateway
+CostEstimatorDecorator --> PriceSnapshot : usa
+EnergyPriceGateway --> PriceSnapshot : produce
+
+VehicleFactory ..> Vehicle : crea
+Route <|.. RouteDecorator
+RouteDecorator <|-- DistanceUnitDecorator
+RouteDecorator <|-- ConsumptionUnitDecorator
+RouteDecorator <|-- CostEstimatorDecorator
+IRouteData <|.. Route
+IRouteData <|.. RouteDecorator
+
+note right of RouteService
+  Resuelve userId mediante UserSession,
+  delega en RouteProxy y cachea rutas.
+end note
+
+note bottom of RouteFacade
+  Orquesta planeamiento aplicando preferencias,
+  estimaciones de coste y persistencia.
+end note
+
+note right of VehicleService
+  Expone operaciones de flota reutilizando
+  VehicleFactory (Factory Method) y caches.
+end note
+
+@enduml
