@@ -1,4 +1,4 @@
-# MONE · Monitorización y Optimización de Energía ⚡
+# MONE · Explore the world · Never lose your way
 
 ## 1. Introducción
 MONE es una plataforma web que ayuda a los usuarios a gestionar sus lugares frecuentes, configurar vehículos y planificar rutas reales con información de costes, distancias y tiempos. La demo pública está desplegada en Vercel: https://moneetravel.vercel.app/ . El objetivo es integrar autenticación, persistencia y cálculo de rutas en un flujo accesible y seguro respaldado por CI/CD en GitHub Actions.
