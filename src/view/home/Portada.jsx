@@ -46,7 +46,7 @@ export const Portada = () => {
 
       <h3 className='eslogan select-none'>
         <TextType className="textoeslogan"
-          text={["Never Loose Your Way", "Explore The World", "Discover New Places"]}
+          text={["Never Lose Your Way", "Explore The World", "Discover New Places"]}
           typingSpeed={75}
           pauseDuration={2500}
           showCursor={true}
