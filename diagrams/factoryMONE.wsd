@@ -16,6 +16,7 @@ interface Vehicle <<interface>> {
   + type: string
   + fuelType: FuelType | null
   + consumption: Consumption
+  + favorite: boolean
   + mostrarInfo(): void
 }
 
