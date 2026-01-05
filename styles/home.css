@@ -43,11 +43,12 @@ body {
     text-shadow: 0 0 5px #f3e28c
 }
 
+
 .titulo {
     position: absolute;
-    top: 40%;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     font-size: 3rem;
     font-weight: bold;
     font-family: 'Poppins', sans-serif;
@@ -108,6 +109,11 @@ body {
     flex-direction: column;
 }
 
+#home {
+    position: relative;
+    min-height: 100vh;
+}
+
 /* push the footer section to the bottom of the page */
 .home_principal > section#footer {
     margin-top: auto;
@@ -115,7 +121,7 @@ body {
 
 .eslogan {
     position: absolute;
-    bottom: 40px;
+    top: calc(50% + 220px);
     left: 50%;
     transform: translateX(-50%);
     /* asi mantiene el centrado */

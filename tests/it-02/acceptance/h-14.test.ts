@@ -12,7 +12,11 @@ const userService = UserService.getInstance();
 beforeAll(async () => {
     // Crear usuario de prueba e iniciar sesión
     try {
-       // await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+        try {
+            await userService.signUp("al123456@uji.es", "Maria", "MiContrasena64");
+        } catch {
+            //ignoremos errores en caso de que ya este registrado
+        }
         await userService.logIn("al123456@uji.es", "MiContrasena64");
         await vehicleService.registerVehicle("al123456@uji.es", "fuelCar", "Fiat Punto", "gasoline", 4.5);
     } catch (error) {
@@ -25,7 +29,7 @@ afterAll(async () => {
     try {
         await vehicleService.deleteVehicle("al123456@uji.es", "Fiat Punto");
     } catch {
-//ignoramos errores
+        //ignoramos errores
     }
 });
 
@@ -43,5 +47,5 @@ describe("Tests aceptación segunda iteración {h14}: DeleteVehicle", () => {
         },
     );
 
-   
+
 });

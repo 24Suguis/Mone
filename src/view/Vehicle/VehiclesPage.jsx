@@ -436,7 +436,6 @@ export default function VehiclesPage() {
       ([a, b]) =>
         (fromUnit === a && toUnit === b) || (fromUnit === b && toUnit === a)
     );
-    console.log("isConvertible:", isConvertible, "desde: ", fromUnit, " hasta: ", toUnit);
 
     if (!isConvertible || value === 0) return value;
 

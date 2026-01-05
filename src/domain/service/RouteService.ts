@@ -119,7 +119,6 @@ export class RouteService {
                 msg.includes("fetch") ||
                 msg.includes("internal server error")
             ) {
-                console.log("RouteService.requestRoute network error", msg);
                 throw new Error("No se pudo calcular la ruta. Comprueba tu conexión a internet y vuelve a intentarlo.");
             }
             throw err;
