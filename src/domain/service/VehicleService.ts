@@ -65,11 +65,8 @@ export class VehicleService {
         ownerId = this.resolveUserId(ownerId);
         const cacheKey = VEHICLE_CACHE_KEY(ownerId);
         const rawCache = readCache<{ data: Vehicle[] }>(cacheKey);
-      //  console.log("[VehicleService.getVehicles] rawCache:", rawCache);
         const cached = rawCache?.data ?? null;
-      //  console.log("[VehicleService.getVehicles] cached (extracted .data):", cached);
         const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
-      //  console.log("[VehicleService.getVehicles] offline:", offline);
         if (offline) {
             if (cached) return cached;
             throw new Error("OfflineNoCache");
@@ -85,13 +82,11 @@ export class VehicleService {
           
             if (Array.isArray(normalized) && normalized.length === 0 && cached && cached.length > 0) {
                 // Avoid wiping cache if an offline/flaky fetch returned empty.
-            //    console.log("[VehicleService.getVehicles] returning cached (empty fetch fallback)");
                 return cached;
             }
             writeCache(cacheKey, normalized);
             return normalized;
         } catch (err) {
-        //    console.error("[VehicleService.getVehicles] error:", err);
             if (cached) return cached; // offline fallback
             throw err;
         }

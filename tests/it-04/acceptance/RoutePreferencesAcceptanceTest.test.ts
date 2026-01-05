@@ -60,8 +60,13 @@ const resetDefaultOptions = async (userId: string) => {
 
 const clearUserVehicles = async (ownerId: string) => {
 	const vehicles = await vehicleService.getVehicles(ownerId);
-	await Promise.all(vehicles.map((vehicle) => vehicleService.deleteVehicle(ownerId, vehicle.name)));
-};
+	try {
+		await Promise.all(vehicles.map((vehicle) => vehicleService.deleteVehicle(ownerId, vehicle.name)));
+	}
+	catch {
+		//en caso de que no haya vehiculos puede dar error, el objetivo es limpiarlo, no estamos comprobando el borrado en si
+	}
+}
 
 const seedDefaultVehicle = async (ownerId: string) => {
 	await vehicleService.registerVehicle(ownerId, "fuelCar", "Mercedes", "gasoline", 8.5);

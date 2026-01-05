@@ -78,7 +78,6 @@ export class PlaceRepositoryFirebase implements PlaceRepository {
 	
 	async updatePlace(userId: string, placeId: string, place: Place): Promise<void> {
 		if (!placeId) throw new Error("placeId is required to update a place");
-		console.log("dentro firebase, nuevo valor:", place);
 		const docRef = doc(collectionForUser(userId), placeId);
 		await updateDoc(docRef, {
 			...serializePlace(place),

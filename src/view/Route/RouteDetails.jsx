@@ -122,7 +122,6 @@ const formatDistance = (distance, unit = "m") => {
 };
 
 const formatCost = (amount, currency = "EUR") => {
-  // console.log("formatCost", amount, currency);
 
   if (!Number.isFinite(amount)) return "—";
   try {

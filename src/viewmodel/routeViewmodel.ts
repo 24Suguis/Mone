@@ -291,7 +291,6 @@ function normalizeVehicleConsumption(vehicle): { value: number; unit: string | n
   if (!vehicle?.consumption) return null;
   const base = vehicle.consumption;
   const maybeAmount = base.amount.amount;
-  //console.log("eooooo", base.amount.unit);
   if (typeof maybeAmount === "number") {
     return {
       value: maybeAmount,
@@ -310,7 +309,6 @@ function normalizeVehicleConsumption(vehicle): { value: number; unit: string | n
 
 
 function formatCost(amount, currency = "EUR"): number | string {
-  // console.log("formatCost", amount, currency);
 
   if (!Number.isFinite(amount)) return "—";
   try {
